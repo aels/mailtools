@@ -20,7 +20,7 @@ except ImportError:
 smtp_list_file          = 'smtp_list.txt'
 mail_list_file          = 'mail_list.txt'
 mail_body_file          = 'mail_body.txt'
-attachment_file         = 'masterclass_invoice.html'
+attachment_file         = 'attached_files.zip'
 redirects_file 			= ''
 mail_to_verify          = 'omgmovebx@outlook.com'
 verify_every			= 1000
