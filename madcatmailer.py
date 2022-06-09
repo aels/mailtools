@@ -24,8 +24,8 @@ attachment_file         = 'masterclass_invoice.html'
 redirects_file 			= ''
 mail_to_verify          = 'omgmovebx@outlook.com'
 verify_every			= 1000
-threads_count 			= 20
-connection_timeout 		= 5
+threads_count 			= 30
+connection_timeout 		= 10
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -52,13 +52,14 @@ def worker_item(mail_que, smtp_que, worker_results):
 	global threads_counter
 	self = threading.current_thread()
 	mails_sent = 0
+	error_regexp = 'could not deliver|per session|timed out|rate-limited|too much|too many|run connect|mailbox unavailable|local error|451'
 	while True:
 		if smtp_que.empty():
-			worker_results.put((self.name,f'{c.FAIL}{c.BOLD}no free SMTPs left. Thread suspended{c.END}',mails_sent))
+			# worker_results.put((self.name,f'{c.FAIL}{c.BOLD}no free SMTPs left. Thread suspended{c.END}',mails_sent))
 			break
 		else:
 			smtp = smtp_que.get()
-			worker_results.put((self.name,f'switching to {c.WARN}{c.BOLD}{smtp}{c.END}',mails_sent))
+			worker_results.put((self.name,f'{c.WARN}{c.BOLD}switching to{c.END} {smtp}',mails_sent))
 			smtp_server, port, user, password = smtp.split('|')
 			try:
 				server = smtp_connect(smtp_server, port, user, password)
@@ -75,13 +76,22 @@ def worker_item(mail_que, smtp_que, worker_results):
 					except Exception as e:
 						mail_que.put(mail)
 						e = str(e).strip()
-						worker_results.put((self.name,f'{smtp}: '+f'{c.FAIL}{c.BOLD}{e}'[:80]+f'{c.END}',mails_sent))
+						if re.match(error_regexp, e):
+							smtp_que.put(smtp)
+							worker_results.put((self.name,f'rate-limit error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
+						else:
+							worker_results.put((self.name,f'{c.FAIL}{c.BOLD}{e}{c.END}',mails_sent))
 						time.sleep(1)
 						break
 				server.quit()
 			except Exception as e:
 				e = str(e).strip()
-				worker_results.put((self.name,f'{smtp}: '+f'{c.FAIL}{c.BOLD}{e}'[:80]+f'{c.END}',mails_sent))
+				if re.match(error_regexp, e):
+					smtp_que.put(smtp)
+					worker_results.put((self.name,f'timeout error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
+				else:
+					worker_results.put((self.name,f'connection error: {c.FAIL}{c.BOLD}{e}{c.END}',mails_sent))
+					# worker_results.put((self.name,f'{smtp}: '+f'{c.FAIL}{c.BOLD}{e}'[:80]+f'{c.END}',mails_sent))
 				time.sleep(1)
 				continue
 			if mail_que.empty():
@@ -89,26 +99,29 @@ def worker_item(mail_que, smtp_que, worker_results):
 	threads_counter -= 1
 
 def expand_macros(string, one, two, to_mail, redirect_url):
-	string = string.replace('{{1}}',one).replace('{{2}}',two).replace('{{redirect_url}}',redirect_url).replace('{{mail}}',to_mail)
+	username = to_mail.split('@')[0].capitalize()
+	string = string.replace('{{1}}',one).replace('{{2}}',two)
+	string = string.replace('{{mail}}',to_mail)
+	string = string.replace('{{username}}',username)
+	string = string.replace('{{redirect_url}}',redirect_url)
+	string = string.replace('{{random_name}}',get_random_name())
 	macros = re.findall('(\{\{.*?\}\})', string)
 	for macro in macros:
 		string = string.replace(macro,random.choice(macro[2:-2].split('|')))
-
 	return string
 
 def cut_str(string, length):
 	return (string, string[0:length-3]+f'...{c.END}')[len(string)>length]
 
-def draw_statuses(smtp_left):
-	global threads_statuses
+def draw_statuses():
+	global smtp_left, threads_statuses, threads_counter
 	rows = len(threads_statuses)
 	sys.stdout.write('\033[F'*rows+'\033[F')
 	print((f'[ cpu load: {c.BOLD}{round(os.getloadavg()[0]/os.cpu_count(),2)}{c.END} ]'+
-		   f'[ threads: {c.BOLD}{rows}{c.END} ]'+
-		   f'[ {c.BOLD}{str(smtp_left)}{c.END} SMTPs left ]').rjust(144))
+		   f'[ threads: {c.BOLD}{threads_counter}{c.END} ]'+
+		   f'[ {c.BOLD}{smtp_left}{c.END} SMTPs left ]').rjust(144))
 	for i in range(rows):
-		print(threads_statuses['thread'+str(i)])
-		
+		print(threads_statuses['thread'+str(i)])	
 
 def smtp_connect(smtp_server, port, user, password):
 	global connection_timeout
@@ -133,7 +146,7 @@ def smtp_connect(smtp_server, port, user, password):
 
 def smtp_sendmail(server,from_mail,mail_str):
 	global mail_body_file, attachment_file, redirects_file
-	to_mail, one, two = mail_str.split(';') or (mail_to_verify, 'Johnson Farr', '12345678')
+	to_mail, one, two = mail_str.split(';') if ';' in mail_str else (mail_str, '', '')
 	subject, body = open(mail_body_file,'r').read().split('\n\n')
 	attachment_display_name = attachment_file.split('/')[-1]
 	redirect_url = random.choice(open(redirects_file, 'r').read().splitlines()) if os.path.isfile(redirects_file) else ''
@@ -142,7 +155,7 @@ def smtp_sendmail(server,from_mail,mail_str):
 	body = expand_macros(body,one,two,to_mail,redirect_url)
 
 	message = MIMEMultipart()
-	message['From'] = get_random_name()+" <"+from_mail+">"
+	message['From'] = f'{get_random_name()} <{from_mail}>'
 	message['To'] = to_mail
 	message['Subject'] = subject
 	message.attach(MIMEText(body, 'html', 'utf-8'))
@@ -152,7 +165,16 @@ def smtp_sendmail(server,from_mail,mail_str):
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_display_name)
 		message.attach(attachment)
-	message_raw = f'Received: {get_random_name()}\n{message.as_string()}'
+	headers = 'Return-Path: '+from_mail+'\n'
+	headers+= 'Reply-To: '+from_mail+'\n'
+	headers+= 'X-Priority: 1\n'
+	headers+= 'X-MSmail-Priority: High\n'
+	headers+= 'X-Source-IP: 127.0.0.1\n'
+	headers+= 'X-Sender-IP: 127.0.0.1\n'
+	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
+	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	headers+= 'Received: '+get_random_name()+'\n'
+	message_raw = headers + message.as_string()
 
 	server.sendmail(from_mail, to_mail, message_raw)
 
@@ -169,8 +191,7 @@ def show_banner():
 	  /  V  \\ _____     __| _/\\_  ____ \\_____ _/  |_
 	 /  \\ /  \\\\__  \\   / __ |  /  \\   \\/\\__  \\\\   __\\
 	/    Y    \\/ A_ \\_/ /_/ |  \\   \\_____/ A_ \\|  |
-	\\____A___ (____  /\\____ |   \\______ (____  /__|
-	         V     \\/      \\/          \\/    \\/  
+	\\____A____(______/\\_____|   \\_______(______/__|
 
 		{c.BOLD}MadCat Mailer v2.1{c.END}
 		Verification email: {c.BOLD}{mail_to_verify}{c.END}
@@ -211,7 +232,7 @@ j = 0
 mail_que = queue.Queue()
 for i in mail_list:
 	if j % verify_every == 0:
-		mail_que.put(mail_to_verify+f';Johnson Farr;12345678')
+		mail_que.put(mail_to_verify+f';Mark Mayflower;12345678')
 	mail_que.put(i)
 	j += 1
 smtp_que = queue.Queue()
@@ -219,7 +240,7 @@ for i in smtp_list:
 	smtp_que.put(i)
 worker_results = queue.Queue()
 
-
+time_start = time.time()
 total_mails_to_sent = mail_que.qsize()
 
 if not mail_que.qsize() or not smtp_que.qsize():
@@ -232,19 +253,17 @@ for i in range(threads_count):
 	worker_thread.start()
 	threads_counter += 1
 
-time_start = time.time()
-
-with alive_bar(total_mails_to_sent,title=f'Progress:') as bar:
+with alive_bar(total_mails_to_sent,title='Progress:') as bar:
 	while True:
 		time_takes = round(time.time()-time_start, 1)+0.09
 		smtp_left = smtp_que.qsize()
 		if not worker_results.empty():
 			thread_name, thread_status, mails_sent = worker_results.get()
-			if "sent to" in thread_status:
+			if 'sent to' in thread_status:
 				bar()
 			mails_per_second = round(mails_sent/time_takes, 1)
 			threads_statuses[thread_name] = '\b'*10+f'{thread_name}'.rjust(9)+cut_str(f': {thread_status}',100).ljust(105)+f' speed: {mails_per_second} mails/s'
-			draw_statuses(smtp_left)
+			draw_statuses()
 		if threads_counter == 0:
 			if mail_que.empty():
 				mails_per_second = round(total_mails_to_sent/time_takes, 1)
@@ -253,18 +272,4 @@ with alive_bar(total_mails_to_sent,title=f'Progress:') as bar:
 			if smtp_que.empty():
 				print('\b'*10+f'{c.FAIL}SMTP list exhausted. All tasks terminated.{c.END}')
 				break
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
