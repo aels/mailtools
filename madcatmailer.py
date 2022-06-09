@@ -272,3 +272,4 @@ with alive_bar(total_mails_to_sent,title='Progress:') as bar:
 			if smtp_que.empty():
 				print('\b'*10+f'{c.FAIL}SMTP list exhausted. All tasks terminated.{c.END}')
 				break
+				
