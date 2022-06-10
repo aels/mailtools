@@ -20,12 +20,12 @@ except ImportError:
 smtp_list_file          = 'smtp_list.txt'
 mail_list_file          = 'mail_list.txt'
 mail_body_file          = 'mail_body.txt'
-attachment_file         = 'attached_files.zip'
+attachment_files        = 'masterclass_invoice.html'
 redirects_file 			= ''
 mail_to_verify          = 'omgmovebx@outlook.com'
 verify_every			= 1000
 threads_count 			= 30
-connection_timeout 		= 10
+connection_timeout 		= 5
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -55,35 +55,35 @@ def worker_item(mail_que, smtp_que, worker_results):
 	error_regexp = 'could not deliver|per session|timed out|rate-limited|too much|too many|run connect|mailbox unavailable|local error|451'
 	while True:
 		if smtp_que.empty():
-			# worker_results.put((self.name,f'{c.FAIL}{c.BOLD}no free SMTPs left. Thread suspended{c.END}',mails_sent))
 			break
 		else:
 			smtp = smtp_que.get()
 			worker_results.put((self.name,f'{c.WARN}{c.BOLD}switching to{c.END} {smtp}',mails_sent))
-			smtp_server, port, user, password = smtp.split('|')
+			smtp_server, port, smtp_user, password = smtp.split('|')
 			try:
-				server = smtp_connect(smtp_server, port, user, password)
+				server_obj = smtp_connect(smtp_server, port, smtp_user, password)
 				while True:
 					if mail_que.empty():
 						worker_results.put((self.name,f'done with {c.GREEN}{c.BOLD}{mails_sent}{c.END} mails',mails_sent))
 						break
-					mail = mail_que.get()
+					mail_str = mail_que.get()
 					try:
-						smtp_sendmail(server,user,mail)
-						worker_results.put((self.name,f'{user} sent to {c.GREEN}{c.BOLD}{mail}{c.END}',mails_sent))
+						smtp_sendmail(server_obj,smtp_user,mail_str)
+						worker_results.put((self.name,f'{smtp_user} sent to {c.GREEN}{c.BOLD}{mail_str}{c.END}',mails_sent))
 						mails_sent += 1
 						mail_que.task_done()
 					except Exception as e:
-						mail_que.put(mail)
+						mail_que.put(mail_str)
 						e = str(e).strip()
 						if re.match(error_regexp, e):
 							smtp_que.put(smtp)
+							# worker_results.put((self.name,f'{c.WARN}{c.BOLD}{e}{c.END}',mails_sent))
 							worker_results.put((self.name,f'rate-limit error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
 						else:
 							worker_results.put((self.name,f'{c.FAIL}{c.BOLD}{e}{c.END}',mails_sent))
 						time.sleep(1)
 						break
-				server.quit()
+				server_obj.quit()
 			except Exception as e:
 				e = str(e).strip()
 				if re.match(error_regexp, e):
@@ -91,29 +91,42 @@ def worker_item(mail_que, smtp_que, worker_results):
 					worker_results.put((self.name,f'timeout error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
 				else:
 					worker_results.put((self.name,f'connection error: {c.FAIL}{c.BOLD}{e}{c.END}',mails_sent))
-					# worker_results.put((self.name,f'{smtp}: '+f'{c.FAIL}{c.BOLD}{e}'[:80]+f'{c.END}',mails_sent))
 				time.sleep(1)
 				continue
 			if mail_que.empty():
 				break
 	threads_counter -= 1
 
-def expand_macros(string, one, two, to_mail, redirect_url):
-	username = to_mail.split('@')[0].capitalize()
-	string = string.replace('{{1}}',one).replace('{{2}}',two)
-	string = string.replace('{{mail}}',to_mail)
-	string = string.replace('{{username}}',username)
-	string = string.replace('{{redirect_url}}',redirect_url)
-	string = string.replace('{{random_name}}',get_random_name())
-	macros = re.findall('(\{\{.*?\}\})', string)
-	for macro in macros:
-		string = string.replace(macro,random.choice(macro[2:-2].split('|')))
-	return string
+def is_binary(data):
+	if not str(data).find("b'"):
+		return True
+	else:
+		return False
+
+def is_valid_email(email):
+	return re.match('^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$', email.lower())
+
+def tuple_to_binary(tup):
+	return '|'.join(tup).encode().split(b'|')
+
+def expand_macros(bytes_data, subs):
+	placeholders = '{{1}}|{{2}}|{{mail}}|{{username}}|{{redirect_url}}|{{random_name}}'.split('|')
+	subs_length = len(subs)
+	if is_binary(bytes_data):
+		for i in range(subs_length):
+			bytes_data = bytes_data.replace(tuple_to_binary(placeholders)[i], tuple_to_binary(subs)[i])
+	else:
+		for i in range(subs_length):
+			bytes_data = bytes_data.replace(placeholders[i], subs[i])
+		macros = re.findall('(\{\{.*?\}\})', bytes_data)
+		for macro in macros:
+			bytes_data = bytes_data.replace(macro,random.choice(macro[2:-2].split('|')))
+	return bytes_data
 
 def cut_str(string, length):
 	return (string, string[0:length-3]+f'...{c.END}')[len(string)>length]
 
-def draw_statuses():
+def dbytes_statuses():
 	global smtp_left, threads_statuses, threads_counter
 	rows = len(threads_statuses)
 	sys.stdout.write('\033[F'*rows+'\033[F')
@@ -130,53 +143,63 @@ def smtp_connect(smtp_server, port, user, password):
 			tls_context = ssl.create_default_context()
 			tls_context.check_hostname = False
 			tls_context.verify_mode = ssl.CERT_NONE
-			server = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
-			server.ehlo()
-			server.starttls(context=tls_context) 
+			server_obj = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
+			server_obj.ehlo()
+			server_obj.starttls(context=tls_context) 
 		elif port == '465':
-			server = smtplib.SMTP_SSL(smtp_server, port, timeout=float(connection_timeout))
+			server_obj = smtplib.SMTP_SSL(smtp_server, port, timeout=float(connection_timeout))
 		else:
-			server = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
+			server_obj = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
 	except Exception as e:
-		server = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
-	server.ehlo()
-	server.login(user, password)
+		server_obj = smtplib.SMTP(smtp_server, port, timeout=float(connection_timeout))
+	server_obj.ehlo()
+	server_obj.login(user, password)
 
-	return server
+	return server_obj
 
-def smtp_sendmail(server,from_mail,mail_str):
-	global mail_body_file, attachment_file, redirects_file
-	to_mail, one, two = mail_str.split(';') if ';' in mail_str else (mail_str, '', '')
-	subject, body = open(mail_body_file,'r').read().split('\n\n')
-	attachment_display_name = attachment_file.split('/')[-1]
+def smtp_sendmail(server_obj,mail_from,mail_str):
+	global mail_body_file, attachment_files, redirects_file
+	mail_str = mail_str.replace('|',';').replace(':',';')
+	mail_str += ';'*(2-mail_str.count(';'))
+	mail_to, one, two = mail_str.split(';')
+	mail_subject_and_body = open(mail_body_file,'r').read().split('\n\n')
+	subject = mail_subject_and_body.pop(0)
+	body = '\n\n'.join(mail_subject_and_body)
 	redirect_url = random.choice(open(redirects_file, 'r').read().splitlines()) if os.path.isfile(redirects_file) else ''
+	random_name = get_random_name()
+	subs = (one,two,mail_to,mail_to.split('@')[0].capitalize(),redirect_url,random_name)
 
-	subject = expand_macros(subject,one,two,to_mail,redirect_url)
-	body = expand_macros(body,one,two,to_mail,redirect_url)
+	if not is_valid_email(mail_to):
+		return False
+
+	subject = expand_macros(subject,subs)
+	body = expand_macros(body,subs)
 
 	message = MIMEMultipart()
-	message['From'] = f'{get_random_name()} <{from_mail}>'
-	message['To'] = to_mail
+	message['From'] = f'{random_name} <{mail_from}>'
+	message['To'] = mail_to
 	message['Subject'] = subject
 	message.attach(MIMEText(body, 'html', 'utf-8'))
-	if os.path.isfile(attachment_file):
-		attachment_body = open(attachment_file, 'r').read()
-		attachment_body = expand_macros(attachment_body,one,two,to_mail,redirect_url)
-		attachment = MIMEApplication(attachment_body)
-		attachment.add_header('content-disposition', 'attachment', filename=attachment_display_name)
-		message.attach(attachment)
-	headers = 'Return-Path: '+from_mail+'\n'
-	headers+= 'Reply-To: '+from_mail+'\n'
+	for attachment_file in attachment_files.split(','):
+		attachment_display_name = attachment_file.split('/')[-1]
+		if os.path.isfile(attachment_file):
+			attachment_body = open(attachment_file, 'rb').read()
+			attachment_body = expand_macros(attachment_body,subs)
+			attachment = MIMEApplication(attachment_body)
+			attachment.add_header('content-disposition', 'attachment', filename=attachment_display_name)
+			message.attach(attachment)
+	headers = 'Return-Path: '+mail_from+'\n'
+	headers+= 'Reply-To: '+mail_from+'\n'
 	headers+= 'X-Priority: 1\n'
 	headers+= 'X-MSmail-Priority: High\n'
 	headers+= 'X-Source-IP: 127.0.0.1\n'
 	headers+= 'X-Sender-IP: 127.0.0.1\n'
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
-	headers+= 'Received: '+get_random_name()+'\n'
+	headers+= 'Received: '+random_name+'\n'
 	message_raw = headers + message.as_string()
 
-	server.sendmail(from_mail, to_mail, message_raw)
+	server_obj.sendmail(mail_from, mail_to, message_raw)
 
 def get_random_name():
 	fnames = 'Dan|Visakan|Molly|Nicole|Nick|Michael|Joanna|Ed|Maxim|Nancy|Mika|Margaret|Melody|Jerry|Lindsey|Jared|Lindsay|Veronica|Marianne|Mohammed|Alex|Lisa|Laurie|Thomas|Mike|Lydia|Melissa|Ccsa|Monique|Morgan|Drew|Milan|Nemashanker|Benjamin|Mel|Norine|Deirdre|Millie|Tom|Maria|Mighty|Terri|Marsha|Mark|Stephen|Holly|Megan|Fonda|Melanie|Nada|Barry|Marilyn|Letitia|Mary|Larry|Mindi|Alexander|Mirela|Lhieren|Wilson|Nandan|Matthew|Nicolas|Michelle|Lauri|John|Amy|Danielle|Laly|Lance|Nance|Debangshu|Emily|Graham|Aditya|Edward|Jimmy|Anne|William|Michele|Laura|George|Marcus|Martin|Bhanu|Miles|Marla|Luis|Christa|Lina|Lynn|Alban|Tim|Chris|Fakrul|Angad|Nolan|Christine|Anil|Marigem|Matan|Louisa|Timothy|Mirza|Donna|Steve|Chandan|Bethany|Oscar|Marcie|Joanne|Jitendra|Lorri|Manish|Brad|Swati|Alan|Larissa|Lori|Lana|Amanda|Anthony|Luana|Javaun|Max|Luke|Malvika|Lee|Nic|Lynne|Nathalie|Natalie|Brooke|Masafumi|Marty|Meredith|Miranda|Liza|Tanner|Jeff|Ghazzalle|Anna|Odetta|Toni|Marc|Meghan|Matt|Fai|Martha|Marjorie|Christina|Martina|Askhat|Leo|Leslie|As|Mandy|Jenene|Marian|Tia|Murali|Heidi|Jody|Mamatha|Sudhir|Yan|Frank|Lauren|Steven|Jessica|Monica|Aneta|Leanne|David|Mallory|Ianne|Melaine|Leeann|Arvid|Marge|Greg|Melinda|Alison|Deborah|Nikhol|Charles|Doug|Nicholas|Alexandre|Nels|James|Yvette|Muruganathan|Mangesh|Cfre|Claudia|Austin|Mara|Linda|Dana|Stewart|Oleg|Nikhil|Emilio|Lenn|Emiliano|Lennart|Cortney|Cullen|Lena|Garima|Levent|Nelson|Xun|Jenn|Noah|Marshall|Nozlee|Lois|Lars|Alissa|Casimir|Fiona|Mehul|Brian|Marvin|Hiedi|Ashley|Luise|Vinay|Mithun|Denise|Orlando|Madison|Colin|Mina|Nichole|Norman|M|Jason|Nereida|Damon|Mohamed|Tomas|Len|Liliana|Marybeth|Dave|Cole|Jennifer|Lucas|Milton|Makhija|Marlon|Miki|Joan|Barbara|Nevins|Marta|Angelique|Muriel|Cornelia|Monty|Mouthu|Jayson|Louis|Janet|Moore|Nathan|Luanne|Dheeraj|Chelley|Vishal|Laree|Ado|Mona|Lorena|Marco|Jeremy|Joe|Andrew|Lloyd|Mahalaxmi|Niamh|Daniel|Mitzi|Les|Laurence|Levonte|Nuno|Mj|Derek|Susan|Deandre|Nizar|Tanya|Maritza|Gabe|Imtiaz|Nira|Ervin|Maureen|Lalit|Lynwood|Li|Christopher|Min|Liz|Diane|Michaeline|Craig|Marianna|Becky|Leonard|Aj|Jeffrey|Edison|Csm|Clay|Marie|Jae|Bruce|Marcello|Lucille|Megha|Todd|Elizabeth|Angelica|Minette|Lynda|Liton|Carrie|Dennis|Amit|May|B|Laurel|Istiaq|Valerio|Sujesh|Vincent|Charley|Benj|Jeanine|Marcin|Ali|Arnaud|Mirna|Dianne|Namita|Melvin|Geroge|Omar|Wesley|Dominic|Adrian|Tina|Eric|Graciano|Leon|Mario|Brandon|Isabel|Antonio|Liang|Lara|Nadezhda|Navjot|Vicki|Danette|Nikia|Sunil|Leighann|Dustin|Adekunle|Natalia|Taylor|Darryl|Danny|Lorenza|Manny|Dorothy|Maryanne|Tarun|Lou|Oliver|Jay|Carla|Atle|Geoff|Mathew|Brit|Casey|Martijn|Laquita|Aaron|Mahesh|Althea|Lorra|Nina|Tammy|Ellie|Calvin|Marcia|Tamir|Meital|Cheryl|Gordon|Mujie|Marylou|Nicki|Manoj|Mitch|Tania|Hector|Dallan|Carol|Adenton|Nadira|Chengxiang|Naomi|Nirav|Frances|Lorelei|Methila|Ilias|Madhusudan|Jim|Noel|Harsha|Mayra|Masano|Nellie|Mengli|Lalita|Margo|Olga|Chase|Vineet|Mae|Akash|Vandhana|Naren|Ian|Niall|Alicia|Nate|Ben|Bill|Meagan|Madelene|Neha|Louise|Marti|Maarten|Asim|Earlyn|Nobumasa|Maaike|Sylvain|Mack|Maggie|Lester|April|Trent|Leland|Maged|Loren|Lycia|Leandrew|Learcell|Terra|Clara|Lasse|Nadine|Lew|Marquita|Marina|Leah|Miche|Brett|Hao|Lex|Maurice|Natasha|Moni|Melodie|Libby|Elliott|Aprajit|Ning|Lanette|Ivy|Liautaud|Merla|Mihaela|Heather|Nicola|Adger|Alyssa|Marusca|Donald|Mashay|Ashlee|Destine|Victor|Narin|Mathias|Branden|Geoffrey|Manjunath|Alexis|Dahlia|Mayer|Taras|Monte|Igor|Harry|Yonas|Obed|Albert|Darrell|Maxime|Zoe|Leigh|Tal|Thoai|Curtis|Cindy|Evan|Gomathy|Tessa|Elaheh|Marinca|Abby|Veronika|Onetta|Nikki|Mohsen|Edwin|Margie|Mick|Bonnie|Trina|Marilia|Nora|Leonor|Eddie|Gail|Arjan|Lorna|Mengwei|Aray|Ann|Wolfgang|Barb|Mahir|Swapna|Lijuan|Dinesh|Mayur|Marit|Beat|Maricela|Erika|Muhammad|Avi|Nestor|Anchal|Avni|Amber|Jessy|Luz|Midhat|Anita|Nandini|Lola|Nathaniel|Cleo|Jean|Lynette|Mitchell|Lawrence|Liviu|Madelyn|Nabil|Mila|Carson|Marcy|Mohammad|Bobby|Theresa|Lei|Nazim|Laurens|Chetan|Magdalena|Charlotte|Ana|Nissanka|Neil|Glenn|Mari|Miguel|Devin|Courtney|Mora|Jocelyn'.split('|')
@@ -193,7 +216,7 @@ def show_banner():
 	/    Y    \\/ A_ \\_/ /_/ |  \\   \\_____/ A_ \\|  |
 	\\____A____(______/\\_____|   \\_______(______/__|
 
-		{c.BOLD}MadCat Mailer v2.1{c.END}
+		{c.BOLD}MadCat Mailer v2.2{c.END}
 		Verification email: {c.BOLD}{mail_to_verify}{c.END}
 		If you face any problems or have questions feel free to ask me.
 		Telegram: {c.GREEN}{c.BOLD}@freebug{c.END}\n"""
@@ -232,7 +255,7 @@ j = 0
 mail_que = queue.Queue()
 for i in mail_list:
 	if j % verify_every == 0:
-		mail_que.put(mail_to_verify+f';Mark Mayflower;12345678')
+		mail_que.put(mail_to_verify+';Mark Mayflower;12345678')
 	mail_que.put(i)
 	j += 1
 smtp_que = queue.Queue()
@@ -263,7 +286,7 @@ with alive_bar(total_mails_to_sent,title='Progress:') as bar:
 				bar()
 			mails_per_second = round(mails_sent/time_takes, 1)
 			threads_statuses[thread_name] = '\b'*10+f'{thread_name}'.rjust(9)+cut_str(f': {thread_status}',100).ljust(105)+f' speed: {mails_per_second} mails/s'
-			draw_statuses()
+			dbytes_statuses()
 		if threads_counter == 0:
 			if mail_que.empty():
 				mails_per_second = round(total_mails_to_sent/time_takes, 1)
@@ -272,4 +295,4 @@ with alive_bar(total_mails_to_sent,title='Progress:') as bar:
 			if smtp_que.empty():
 				print('\b'*10+f'{c.FAIL}SMTP list exhausted. All tasks terminated.{c.END}')
 				break
-				
+
