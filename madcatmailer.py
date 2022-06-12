@@ -21,11 +21,11 @@ smtp_list_file          = 'smtp_list.txt'
 mail_list_file          = 'mail_list.txt'
 mail_body_file          = 'mail_body.txt'
 attachment_files        = 'masterclass_invoice.html'
-redirects_file 			= ''
-mail_to_verify          = 'omgmovebx@outlook.com'
-verify_every			= 1000
-threads_count 			= 30
-connection_timeout 		= 5
+redirects_file          = ''
+mails_to_verify         = 'omgmovebx@outlook.com'
+verify_every            = 1000
+threads_count           = 30
+connection_timeout      = 5
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -126,13 +126,13 @@ def expand_macros(bytes_data, subs):
 def cut_str(string, length):
 	return (string, string[0:length-3]+f'...{c.END}')[len(string)>length]
 
-def dbytes_statuses():
-	global smtp_left, threads_statuses, threads_counter
+def print_statuses():
+	global smtp_que, threads_statuses, threads_counter
 	rows = len(threads_statuses)
 	sys.stdout.write('\033[F'*rows+'\033[F')
 	print((f'[ cpu load: {c.BOLD}{round(os.getloadavg()[0]/os.cpu_count(),2)}{c.END} ]'+
 		   f'[ threads: {c.BOLD}{threads_counter}{c.END} ]'+
-		   f'[ {c.BOLD}{smtp_left}{c.END} SMTPs left ]').rjust(144))
+		   f'[ {c.BOLD}{smtp_que.qsize()}{c.END} SMTPs left ]').rjust(144))
 	for i in range(rows):
 		print(threads_statuses['thread'+str(i)])	
 
@@ -208,7 +208,7 @@ def get_random_name():
 	return random.choice(fnames)+' '+random.choice(lnames)
 
 def show_banner():
-	global mail_to_verify
+	global mails_to_verify
 	banner = f"""{c.HEAD}
 	   __ __              .____________         __   
 	  /  V  \\ _____     __| _/\\_  ____ \\_____ _/  |_
@@ -217,7 +217,7 @@ def show_banner():
 	\\____A____(______/\\_____|   \\_______(______/__|
 
 		{c.BOLD}MadCat Mailer v2.2{c.END}
-		Verification email: {c.BOLD}{mail_to_verify}{c.END}
+		Verification emails: {c.BOLD}{mails_to_verify}{c.END}
 		If you face any problems or have questions feel free to ask me.
 		Telegram: {c.GREEN}{c.BOLD}@freebug{c.END}\n"""
 	time.sleep(1)
@@ -239,54 +239,62 @@ def read_files():
 	if not os.path.isfile(mail_body_file):
 		exit('Please set "mail_body_file"')
 
+def fill_queues():
+	global mail_list,smtp_list,verify_every,mails_to_verify,mail_que,smtp_que,threads_count,total_mails_to_sent
+	j = 0
+	for i in mail_list:
+		if j % verify_every == 0:
+			for mail_to_verify in mails_to_verify.split(','):
+				mail_que.put(mail_to_verify+';Mark Mayflower;12345678')
+		mail_que.put(i)
+		j += 1
+	for i in smtp_list:
+		smtp_que.put(i)
+	if not mail_que.qsize() or not smtp_que.qsize():
+		exit(f'{c.FAIL}Not enough emails or SMTPs. Empty file?{c.END}')
+	total_mails_to_sent = mail_que.qsize()
+	if threads_count > smtp_que.qsize():
+		threads_count = smtp_que.qsize()
+
+def fill_threads_statuses():
+	global threads_count,threads_statuses
+	sys.stdout.write('\n'*threads_count)
+	for i in range(threads_count):
+		threads_statuses['thread'+str(i)] = 'no data'
+
+def setup_threads():
+	global threads_count,threads_counter,mail_que,smtp_que,worker_results
+	for i in range(threads_count):
+		threading.Thread(name='thread'+str(i),target=worker_item,args=(mail_que,smtp_que,worker_results,),daemon=True).start()
+		threads_counter += 1
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 signal.signal(signal.SIGINT, quit)
 
-show_banner()
-read_files()
-sys.stdout.write('\n'*threads_count)
-
-for i in range(threads_count):
-	threads_statuses['thread'+str(i)] = 'no data'
-
 threads_counter = 0
-j = 0
+total_mails_to_sent = 0
+time_start = time.time()
 mail_que = queue.Queue()
-for i in mail_list:
-	if j % verify_every == 0:
-		mail_que.put(mail_to_verify+';Mark Mayflower;12345678')
-	mail_que.put(i)
-	j += 1
 smtp_que = queue.Queue()
-for i in smtp_list:
-	smtp_que.put(i)
 worker_results = queue.Queue()
 
-time_start = time.time()
-total_mails_to_sent = mail_que.qsize()
+show_banner()
+read_files()
+fill_threads_statuses()
+fill_queues()
+setup_threads()
 
-if not mail_que.qsize() or not smtp_que.qsize():
-	exit(f'{c.FAIL}Not enough emails or SMTPs. Empty file?{c.END}')
-if threads_count > smtp_que.qsize():
-	threads_count = smtp_que.qsize()
-
-for i in range(threads_count):
-	worker_thread = threading.Thread(name='thread'+str(i),target=worker_item,args=(mail_que,smtp_que,worker_results,),daemon=True)
-	worker_thread.start()
-	threads_counter += 1
-
-with alive_bar(total_mails_to_sent,title='Progress:') as bar:
+with alive_bar(total_mails_to_sent,bar='blocks',title='Progress:') as progress_bar:
 	while True:
 		time_takes = round(time.time()-time_start, 1)+0.09
-		smtp_left = smtp_que.qsize()
 		if not worker_results.empty():
 			thread_name, thread_status, mails_sent = worker_results.get()
 			if 'sent to' in thread_status:
-				bar()
+				progress_bar()
 			mails_per_second = round(mails_sent/time_takes, 1)
-			threads_statuses[thread_name] = '\b'*10+f'{thread_name}'.rjust(9)+cut_str(f': {thread_status}',100).ljust(105)+f' speed: {mails_per_second} mails/s'
-			dbytes_statuses()
+			threads_statuses[thread_name] = '\b'*10+f'{thread_name}: '.rjust(11)+cut_str(thread_status,96).ljust(100)+f'{mails_sent} mails, {mails_per_second} mails/s'.rjust(22)
+			print_statuses()
 		if threads_counter == 0:
 			if mail_que.empty():
 				mails_per_second = round(total_mails_to_sent/time_takes, 1)
