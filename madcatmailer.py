@@ -20,9 +20,10 @@ except ImportError:
 smtp_list_file          = 'smtp_list.txt'
 mail_list_file          = 'mail_list.txt'
 mail_body_file          = 'mail_body.txt'
-attachment_files        = 'masterclass_invoice.html'
+# attachment_files        = 'traffic_log.pcap'
+attachment_files        = ''
 redirects_file          = ''
-mails_to_verify         = 'omgmovebx@outlook.com'
+mails_to_verify         = 'foxtestbox@outlook.com'
 verify_every            = 1000
 threads_count           = 30
 connection_timeout      = 5
@@ -52,7 +53,7 @@ def worker_item(mail_que, smtp_que, worker_results):
 	global threads_counter
 	self = threading.current_thread()
 	mails_sent = 0
-	error_regexp = 'could not deliver|per session|timed out|rate-limited|too much|too many|run connect|mailbox unavailable|local error|451'
+	error_regexp = r'could not deliver|per session|timed out|rate-limited|too much|too many|run connect|mailbox unavailable|local error|451'
 	while True:
 		if smtp_que.empty():
 			break
@@ -71,22 +72,20 @@ def worker_item(mail_que, smtp_que, worker_results):
 						smtp_sendmail(server_obj,smtp_user,mail_str)
 						worker_results.put((self.name,f'{smtp_user} sent to {c.GREEN}{c.BOLD}{mail_str}{c.END}',mails_sent))
 						mails_sent += 1
-						mail_que.task_done()
 					except Exception as e:
 						mail_que.put(mail_str)
 						e = str(e).strip()
-						if re.match(error_regexp, e):
+						if re.search(error_regexp, e):
 							smtp_que.put(smtp)
-							# worker_results.put((self.name,f'{c.WARN}{c.BOLD}{e}{c.END}',mails_sent))
 							worker_results.put((self.name,f'rate-limit error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
 						else:
 							worker_results.put((self.name,f'{c.FAIL}{c.BOLD}{e}{c.END}',mails_sent))
 						time.sleep(1)
 						break
-				server_obj.quit()
+				# server_obj.quit()
 			except Exception as e:
 				e = str(e).strip()
-				if re.match(error_regexp, e):
+				if re.search(error_regexp, e):
 					smtp_que.put(smtp)
 					worker_results.put((self.name,f'timeout error, {smtp_server} {c.WARN}{c.BOLD}added back to queue{c.END}',mails_sent))
 				else:
@@ -122,6 +121,15 @@ def expand_macros(bytes_data, subs):
 		for macro in macros:
 			bytes_data = bytes_data.replace(macro,random.choice(macro[2:-2].split('|')))
 	return bytes_data
+
+def get_read_receipt_headers(to):
+	receipt_headers =f'Disposition-Notification-To: {to}\n'
+	receipt_headers+=f'Generate-Delivery-Report: {to}\n'
+	receipt_headers+=f'Read-Receipt-To: {to}\n'
+	receipt_headers+=f'Return-Receipt-Requested: {to}\n'
+	receipt_headers+=f'Return-Receipt-To: {to}\n'
+	receipt_headers+=f'X-Confirm-reading-to: {to}\n'
+	return receipt_headers
 
 def cut_str(string, length):
 	return (string, string[0:length-3]+f'...{c.END}')[len(string)>length]
@@ -197,6 +205,7 @@ def smtp_sendmail(server_obj,mail_from,mail_str):
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+random_name+'\n'
+	headers+= get_read_receipt_headers(mail_from)
 	message_raw = headers + message.as_string()
 
 	server_obj.sendmail(mail_from, mail_to, message_raw)
@@ -216,7 +225,7 @@ def show_banner():
 	/    Y    \\/ A_ \\_/ /_/ |  \\   \\_____/ A_ \\|  |
 	\\____A____(______/\\_____|   \\_______(______/__|
 
-		{c.BOLD}MadCat Mailer v2.2{c.END}
+		{c.BOLD}MadCat Mailer v2.4{c.END}
 		Verification emails: {c.BOLD}{mails_to_verify}{c.END}
 		If you face any problems or have questions feel free to ask me.
 		Telegram: {c.GREEN}{c.BOLD}@freebug{c.END}\n"""
@@ -227,7 +236,7 @@ def show_banner():
 	time.sleep(3)
 
 def read_files():
-	global mail_list,smtp_list,mail_list_file,smtp_list_file,mail_body_file,attachment_file
+	global mail_list,smtp_list,mail_list_file,smtp_list_file,mail_body_file,attachment_files
 	try:
 		mail_list = open(mail_list_file,'r').read().splitlines()
 	except:
