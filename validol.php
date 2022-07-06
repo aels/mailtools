@@ -1,5 +1,10 @@
 <?php
 
+// ~~~~ mail validation script ~~~~~~~~~~~~~~~
+// ~~~~ VALIDOL v1.1 ~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~ https://github.com/aels/mailtools ~~~~
+// ~~~~ contact: https://t.me/freebug ~~~~~~~~
+
 if( empty($argv[1]) ) {
 	die("Usage:\nphp {$argv[0]} file1,file2,file3");
 }
