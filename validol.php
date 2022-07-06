@@ -10,7 +10,7 @@ if( empty($argv[1]) ) {
 }
 
 include('vendor/autoload.php');
-$db = new \IP2Location\Database('ip2location.bin', \IP2Location\Database::FILE_IO);
+$db = new \IP2Location\Database('ip2location.bin', \IP2Location\Database::MEMORY_CACHE);
 
 $bad_users = "/customer|scanner|apps|service|info|sales|admin|director|^hr$|finance|contact|support|security|mail|manager|abuse|job|billing|home|account|report|office|about|help|webmaster|confirm|reply|tech|marketing|feedback|newsletter|orders|verification|calendar|regist|survey|excel|submission|contracts|invite|hello|staff|community|fax|twitter|postmaster|found|catch|test/i";
 $bad_zones = "/(\.us|\.gov|\.mil|\.edu)$/i";
