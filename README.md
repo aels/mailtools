@@ -5,6 +5,7 @@ Checks are performed by looking at:
 - subnet name of server of mx records
 - reverse ptr of email host
 - title of host's website
+
 Also emails like `staff@`, `admin@`, `support@` and so on are removed by default.
 Emails which are hosted on _edu_, _gov_ and _mil_ domains are also removed.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
