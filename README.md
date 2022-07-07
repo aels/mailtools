@@ -1,5 +1,5 @@
 # validol.php - mail validation script.
-<img width="971" alt="image" src="https://user-images.githubusercontent.com/1212294/177663104-40f303d8-fbf1-446f-9879-88dafb5a806c.png">
+<img width="909" alt="image" src="https://user-images.githubusercontent.com/1212294/177665014-4fd269f3-0911-41a6-aa3f-2da2c38d74fa.png">
 It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as **perimeterwatch**, **proofpoint**, **fireeye** and so on (total ~50 vendors).
 Checks are performed by looking at:
 - mx records of email domain
