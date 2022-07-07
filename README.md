@@ -9,14 +9,19 @@ Emails which are hosted on _edu_, _gov_ and _mil_ domains are also removed.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
 ## Setup
 - go to empty directory, where geo-ip database and packages will be located
-- download ip2location php classes with composer: `composer require ip2location/ip2location-php`
+- download ip2location php classes with composer:
+```
+composer require ip2location/ip2location-php
+```
 - download _ip2location.bin_ database itself from url https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin and put it into the same folder.
 This database contains required subnet names data.
 - _Optionaly_ you can download `validol.php` script itself, but I recommend to curl it with every usage from this repository.
 - All done, we can go.
 ## Usage
 Ofc you need __php installed__, if so, example command is:
-`php <(curl -fskSL bit.ly/va1idol) email-file1,maillist2,/path/to/mail-list3`
+```
+php <(curl -fskSL bit.ly/va1idol) email-file1,maillist2,/path/to/mail-list3
+```
 Script will produce two new files: _mails_bad.txt_ with dangerous mails and reasons of each, and _mails_validated.txt_ which is your source file with dangerous lines removed.
 mail_list file itself can by any format with any data. Only requirement - better it to contain some emails to check. They will be excracted with RegExp, leaving other data untouched,
 so basically strings like
