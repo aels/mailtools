@@ -1,9 +1,10 @@
 # validol.php - mail validation script.
-It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as **perimeterwatch**, **proofpoint**, **fireeye** and so on (total ~50 vendors)
+It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as **perimeterwatch**, **proofpoint**, **fireeye** and so on (total ~50 vendors).
 Checks are performed by looking at:
 - mx records of email domain
 - subnet name of server of mx records
 - reverse ptr of email host
+- title of host's website
 Also emails like `staff@`, `admin@`, `support@` and so on are removed by default.
 Emails which are hosted on _edu_, _gov_ and _mil_ domains are also removed.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
