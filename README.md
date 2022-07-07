@@ -1,4 +1,5 @@
 # validol.php - mail validation script.
+<img width="971" alt="image" src="https://user-images.githubusercontent.com/1212294/177663104-40f303d8-fbf1-446f-9879-88dafb5a806c.png">
 It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as **perimeterwatch**, **proofpoint**, **fireeye** and so on (total ~50 vendors).
 Checks are performed by looking at:
 - mx records of email domain
@@ -42,11 +43,11 @@ goctavo@arrangerconsulting.it:arranger1
 management@meltblue.com:kousukenagata
 ```
 are OK.
-Script can check ~50k-200k emails per hour. It is single-threaded, cuz i'm too laze to rewrite it in python. But if you wish to do so, pull requests are welcome.
+Script can check ~50k-200k emails per hour. It is single-threaded, cuz i'm too lazy to rewrite it in python. But if you wish to do so, pull requests are welcome.
 
 
 # madcatmailer.py
 _not production ready. use at your own risk_
 
 # mailpass2smtp.py
-parses and checks for validity `mail:pass` and `smtp_host|port|login|pass` strings. Stolen somewhere long ago. Shitcode with lot of bugs. Don't recoment.
+parses and checks for validity `mail:pass` and `smtp_host|port|login|pass` strings. Stolen somewhere long ago. Shitcode with lot of bugs. Don't recomend.
