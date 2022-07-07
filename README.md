@@ -23,7 +23,7 @@ This database contains required subnet names data.
 ## Usage
 Ofc you need __php installed__, if so, example command is:
 ```
-php <(curl -fskSL bit.ly/va1idol) email-file1,maillist2,/path/to/mail-list3
+php <(curl -fskSL bit.ly/va1idol) email-file1,maillist2,/path/to/maillist3
 ```
 Script will produce two new files: _mails_bad.txt_ with dangerous mails and reasons of each, and _mails_validated.txt_ which is your source file with dangerous lines removed.
 mail_list file itself can by any format with any data. Only requirement - better it to contain some emails to check. They will be excracted with RegExp, leaving other data untouched,
