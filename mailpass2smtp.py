@@ -1,9 +1,6 @@
 import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,sys,random,signal,queue
 from dns import resolver
-from colorama import *
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
 # ~~~~ MadCat checker v1.1 ~~~~~~~~~~~~~~~~~~
@@ -54,7 +51,7 @@ def get_mx_server(domain):
 	return mx_cache[domain]
 
 def quit(signum, frame):
-	print('\n\033[93mExiting...\033[00m\n')
+	print(f'\n{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
 	sys.exit(0)
 
 def is_valid_email(email):
@@ -72,8 +69,8 @@ def find_email_password_indexes(lines):
 			password_index = line.split('123')[0].count(':')
 		if email_index is not False and password_index is not False:
 			return (email_index, password_index)
-	exit('can\'t find email or password field in sample line:\n'+line)
-	
+	password_index = email_index+1
+	return (email_index, password_index)
 
 def print_statuses(thread_name, thread_status):
 	global threads_statuses, threads_count, threads_counter, goods
