@@ -51,7 +51,7 @@ def get_mx_server(domain):
 	return mx_cache[domain]
 
 def quit(signum, frame):
-	print('\b'*10+f'\n{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
+	print('\b'*10+f'{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
 	sys.exit(0)
 
 def is_valid_email(email):
@@ -82,7 +82,7 @@ def print_statuses(thread_name, thread_status):
 		f'[ goods: {c.BOLD}{c.GREEN}{goods}{c.END} ]'
 	).rjust(144))
 	for i in range(threads_count):
-		print(threads_statuses['thread'+str(i)] or '')
+		print(threads_statuses['thread'+str(i)])
 
 def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	global verify_email, timeout
@@ -96,7 +96,13 @@ def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	headers+= 'X-MSmail-Priority: High\n'
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
-	if port == '465':
+	if port == '587':
+		context = ssl.create_default_context()
+		context.check_hostname = False
+		context.verify_mode = ssl.CERT_NONE
+		server_obj = smtplib.SMTP(smtp_server, port, timeout=float(timeout))
+		server_obj.starttls(context=context)
+	elif port == '465':
 		server_obj = smtplib.SMTP_SSL(smtp_server, port, timeout=float(timeout))
 	else:
 		server_obj = smtplib.SMTP(smtp_server, port, timeout=float(timeout))
