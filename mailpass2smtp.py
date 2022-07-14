@@ -51,7 +51,7 @@ def get_mx_server(domain):
 	return mx_cache[domain]
 
 def quit(signum, frame):
-	print(f'\n{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
+	print('\b'*10+f'\n{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
 	sys.exit(0)
 
 def is_valid_email(email):
