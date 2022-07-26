@@ -129,7 +129,7 @@ def worker_item(quee, results):
 	while True:
 		if quee.empty():
 			results.put((self.name,f'queue exhausted, {c.BOLD}sleeping...{c.END}'))
-			time.sleep(1)
+			time.sleep(3)
 			if quee.empty():
 				break
 		else:
@@ -157,7 +157,7 @@ signal.signal(signal.SIGINT, quit)
 quee = queue.Queue()
 results = queue.Queue()
 goods = 0
-threads_count = 30
+threads_count = 60
 threads_counter = 0
 threads_statuses = {}
 mx_cache = {}
@@ -173,8 +173,9 @@ try:
 	if not is_valid_email(verify_email):
 		raise
 	exclude_mail_hosts = sys.argv[3] or 'sorry,mom'
+	start_from_line = sys.argv[4] or 0
 except:
-	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com [exclude,mail,hosts]')
+	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com [exclude,mail,hosts] [start_from_line]')
 email_index, password_index = find_email_password_indexes(list_filename)
 total_lines = wc_count(list_filename)
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
@@ -183,6 +184,9 @@ print(f'password_index: {c.BOLD}{str(password_index)}{c.END}')
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 sys.stdout.write('\n'*threads_count)
 with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, open(list_filename) as fp:
+	for i in range(int(start_from_line)):
+		line = fp.readline()
+		progress_bar()
 	while True:
 		while quee.qsize()<threads_count*2:
 			line = fp.readline().strip()
