@@ -62,7 +62,7 @@ def find_email_password_indexes(list_filename):
 	password_index = False
 	with open(list_filename) as fp:
 		for line in fp:
-			line = re.sub('[;,\t| ]', ':', line.lower())
+			line = re.sub('[;,\t| \'"]+', ':', line.lower())
 			email = re.search(r'[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}', line)
 			if email_index is False and email:
 				email_index = line.split(email.group(0))[0].count(':') or 0
@@ -191,7 +191,7 @@ with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, op
 			if line.count('|')==3:
 				quee.put((line.split('|')))
 			else:
-				line = re.sub('[;,\t| ]', ':', line)
+				line = re.sub('[;,\t| \'"]+', ':', line)
 				fields = line.split(':')
 				if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not is_ignored_host(fields[email_index]):
 					quee.put((False,False,fields[email_index],fields[password_index]))
