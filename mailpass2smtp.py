@@ -157,7 +157,7 @@ signal.signal(signal.SIGINT, quit)
 quee = queue.Queue()
 results = queue.Queue()
 goods = 0
-threads_count = 60
+threads_count = 50
 threads_counter = 0
 threads_statuses = {}
 mx_cache = {}
@@ -197,7 +197,7 @@ with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, op
 			else:
 				line = re.sub('[;,\t| \'"]+', ':', line)
 				fields = line.split(':')
-				if len(fields)>1 and fields[email_index] and len(fields[password_index])>7 and not is_ignored_host(fields[email_index]):
+				if len(fields)>1 and is_valid_email(fields[email_index]) and len(fields[password_index])>7 and not is_ignored_host(fields[email_index]):
 					quee.put((False,False,fields[email_index],fields[password_index]))
 				else:
 					progress_bar()
