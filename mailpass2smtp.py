@@ -57,21 +57,21 @@ def quit(signum, frame):
 def is_valid_email(email):
 	return re.match(r'^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$', email.lower())
 
-def find_email_password_indexes(list_filename):
-	email_index = False
-	password_index = False
+def find_email_password_collumnes(list_filename):
+	email_collumn = False
+	password_collumn = False
 	with open(list_filename) as fp:
 		for line in fp:
 			line = re.sub('[;,\t| \'"]+', ':', line.lower())
 			email = re.search(r'[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}', line)
-			if email_index is False and email:
-				email_index = line.split(email.group(0))[0].count(':') or 0
-			if password_index is False and re.search(r'@.+123', line):
-				password_index = line.split('123')[0].count(':')
-			if email_index is not False and password_index is not False:
-				return (email_index, password_index)
-	password_index = email_index+1
-	return (email_index, password_index)
+			if email_collumn is False and email:
+				email_collumn = line.split(email.group(0))[0].count(':') or 0
+			if password_collumn is False and re.search(r'@.+123', line):
+				password_collumn = line.split('123')[0].count(':')
+			if email_collumn is not False and password_collumn is not False:
+				return (email_collumn, password_collumn)
+	password_collumn = email_collumn+1
+	return (email_collumn, password_collumn)
 
 def print_statuses(thread_name, thread_status):
 	global threads_statuses, threads_count, threads_counter, goods, quee
@@ -176,12 +176,11 @@ try:
 	start_from_line = sys.argv[4] or 0
 except:
 	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com [exclude,mail,hosts] [start_from_line]')
-email_index, password_index = find_email_password_indexes(list_filename)
+email_collumn, password_collumn = find_email_password_collumnes(list_filename)
 total_lines = wc_count(list_filename)
-print(f'verification email: {c.BOLD}{verify_email}{c.END}')
-print(f'email_index: {c.BOLD}{str(email_index)}{c.END}')
-print(f'password_index: {c.BOLD}{str(password_index)}{c.END}')
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
+print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
+print(f'verification email: {c.BOLD}{verify_email}{c.END}')
 sys.stdout.write('\n'*threads_count)
 with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, open(list_filename) as fp:
 	for i in range(int(start_from_line)):
@@ -197,8 +196,8 @@ with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, op
 			else:
 				line = re.sub('[;,\t| \'"]+', ':', line)
 				fields = line.split(':')
-				if len(fields)>1 and is_valid_email(fields[email_index]) and len(fields[password_index])>7 and not is_ignored_host(fields[email_index]):
-					quee.put((False,False,fields[email_index],fields[password_index]))
+				if len(fields)>1 and is_valid_email(fields[email_collumn]) and len(fields[password_collumn])>7 and not is_ignored_host(fields[email_collumn]):
+					quee.put((False,False,fields[email_collumn],fields[password_collumn]))
 				else:
 					progress_bar()
 		if not results.empty():
