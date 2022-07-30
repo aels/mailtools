@@ -114,7 +114,7 @@ def worker_item(jobs_que, results):
 	global threads_counter, verify_email, goods, no_jobs_left
 	self = threading.current_thread()
 	while True:
-		if mem_usage>90 or cpu_usage>90:
+		if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
 			break
 		if jobs_que.empty():
 			if no_jobs_left:
@@ -146,16 +146,16 @@ def worker_item(jobs_que, results):
 
 def every_second():
 	global mem_usage, cpu_usage, jobs_que, results, threads_counter, no_jobs_left
-	time.sleep(3)
+	time.sleep(1)
 	while True:
-		if no_jobs_left:
+		if no_jobs_left and threads_counter == 0:
 			break
 		mem_usage = psutil.virtual_memory()[2]
 		cpu_usage = max(psutil.cpu_percent(percpu=True))
 		if mem_usage<80 and cpu_usage<80:
 			threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
 			threads_counter += 1
-		time.sleep(1)
+		time.sleep(0.5)
 
 signal.signal(signal.SIGINT, quit)
 jobs_que = queue.Queue()
@@ -168,7 +168,6 @@ threads_counter = 0
 threads_statuses = {}
 mx_cache = {}
 timeout = 3
-threads_started = False
 no_jobs_left = False
 
 try:
@@ -196,6 +195,7 @@ print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
 with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename) as fp:
+	threading.Thread(target=every_second, daemon=True).start()
 	for i in range(int(start_from_line)):
 		line = fp.readline()
 	while True:
@@ -219,13 +219,7 @@ with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(
 			if 'trying' in thread_status:
 				progress_bar.set_description(f'mem: {c.BOLD}{mem_usage}{c.END}%, cpu: {c.BOLD}{cpu_usage}{c.END}%, threads: {c.BOLD}{threads_counter}{c.END}, goods: {c.BOLD}{c.GREEN}{goods}{c.END}')
 				progress_bar.update(1)
-		if threads_counter == 0 and jobs_que.empty():
+		if threads_counter == 0 and no_jobs_left:
 			progress_bar.close()
 			print('\b'*10+f'{c.GREEN}{c.BOLD}All done.{c.END}')
 			break
-		if not threads_started:
-			threading.Thread(target=every_second, daemon=True).start()
-			while threads_counter < threads_count:
-				threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
-				threads_counter += 1
-			threads_started = True
