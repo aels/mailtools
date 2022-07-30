@@ -185,7 +185,7 @@ try:
 	except:
 		exclude_mail_hosts = 'sorry,mom'
 	try:
-		start_from_line = sys.argv[4]
+		start_from_line = int(sys.argv[4])
 	except:
 		start_from_line = 0
 except:
