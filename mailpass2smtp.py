@@ -3,7 +3,7 @@ from dns import resolver
 from email.mime.text import MIMEText
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
-# ~~~~ MadCat checker v1.2 ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.3 ~~~~~~~~~~~~~~~~~~
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
@@ -145,7 +145,7 @@ def worker_item(jobs_que, results):
 	threads_counter -= 1
 
 def every_second():
-	global mem_usage, cpu_usage, jobs_que, results, threads_counter
+	global mem_usage, cpu_usage, jobs_que, results, threads_counter, no_jobs_left
 	time.sleep(3)
 	while True:
 		if no_jobs_left:
