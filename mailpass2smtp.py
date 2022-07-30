@@ -195,7 +195,7 @@ total_lines = wc_count(list_filename)
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
-with tqdm.tqdm(total=total_lines,smoothing=0.5,initial=start_from_line) as progress_bar, open(list_filename) as fp:
+with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename) as fp:
 	for i in range(int(start_from_line)):
 		line = fp.readline()
 	while True:
