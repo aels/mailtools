@@ -3,7 +3,7 @@ from dns import resolver
 from email.mime.text import MIMEText
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
-# ~~~~ MadCat checker v1.2 ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.3 ~~~~~~~~~~~~~~~~~~
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
