@@ -1,6 +1,14 @@
-import socket,threading,sys,ssl,smtplib,time,re,os,random,signal,queue,subprocess,psutil,tqdm
-from dns import resolver
+import socket,threading,sys,ssl,smtplib,time,re,os,random,signal,queue,subprocess
 from email.mime.text import MIMEText
+
+try:
+	import psutil,tqdm
+	from dns import resolver
+except ImportError:
+	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'psutil tqdm dnspython'])
+finally:
+	import psutil,tqdm
+	from dns import resolver
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
 # ~~~~ MadCat checker v1.3 ~~~~~~~~~~~~~~~~~~
@@ -9,12 +17,6 @@ from email.mime.text import MIMEText
 
 if sys.version_info[0] < 3:
 	raise Exception("Python 3 or a more recent version is required.")
-try:
-	from alive_progress import alive_bar
-except ImportError:
-	from pip._internal import main as pip
-	pip(['install', '--user', 'alive_progress'])
-	from alive_progresss import alive_bar
 
 class c:
 	HEAD = "\033[95m"
@@ -155,7 +157,7 @@ def every_second():
 		if mem_usage<80 and cpu_usage<80:
 			threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
 			threads_counter += 1
-		time.sleep(0.5)
+		time.sleep(0.1)
 
 signal.signal(signal.SIGINT, quit)
 jobs_que = queue.Queue()
@@ -165,7 +167,6 @@ mem_usage = 0
 cpu_usage = 0
 threads_count = 50
 threads_counter = 0
-threads_statuses = {}
 mx_cache = {}
 timeout = 3
 no_jobs_left = False
