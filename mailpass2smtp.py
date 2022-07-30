@@ -3,7 +3,7 @@ from dns import resolver
 from email.mime.text import MIMEText
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
-# ~~~~ MadCat checker v1.3 ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.2 ~~~~~~~~~~~~~~~~~~
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
@@ -217,12 +217,7 @@ with tqdm.tqdm(total=total_lines,smoothing=0.5,initial=start_from_line) as progr
 			thread_status = results.get()
 			tqdm.tqdm.write(thread_status)
 			if 'trying' in thread_status:
-				progress_bar.set_postfix(
-					mem = f'{c.BOLD}{mem_usage}{c.END}%',
-					cpu = f'{c.BOLD}{cpu_usage}{c.END}%',
-					threads = f'{c.BOLD}{threads_counter}{c.END}',
-					goods = f'{c.BOLD}{c.GREEN}{goods}{c.END}'
-				)
+				progress_bar.set_description(f'mem: {c.BOLD}{mem_usage}{c.END}%, cpu: {c.BOLD}{cpu_usage}{c.END}%, threads: {c.BOLD}{threads_counter}{c.END}, goods: {c.BOLD}{c.GREEN}{goods}{c.END}')
 				progress_bar.update(1)
 		if threads_counter == 0 and jobs_que.empty():
 			progress_bar.close()
