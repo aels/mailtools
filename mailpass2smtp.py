@@ -5,7 +5,7 @@ try:
 	import psutil,tqdm
 	from dns import resolver
 except ImportError:
-	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'psutil tqdm dnspython'])
+	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'psutil', 'tqdm', 'dnspython'])
 	import psutil,tqdm
 	from dns import resolver
 
@@ -162,7 +162,7 @@ def worker_item(jobs_que, results):
 	threads_counter -= 1
 
 def every_second():
-	global mem_usage, cpu_usage, jobs_que, results, threads_counter, no_jobs_left, loop_times, loop_time
+	global mem_usage, cpu_usage, jobs_que, results, threads_counter, threads_count, no_jobs_left, loop_times, loop_time
 	time.sleep(1)
 	while True:
 		if no_jobs_left and threads_counter == 0:
@@ -170,7 +170,7 @@ def every_second():
 		mem_usage = psutil.virtual_memory()[2]
 		cpu_usage = max(psutil.cpu_percent(percpu=True))
 		loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
-		if mem_usage<80 and cpu_usage<80:
+		if mem_usage<80 and cpu_usage<80 or threads_counter<threads_count:
 			threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
 			threads_counter += 1
 		time.sleep(0.1)
