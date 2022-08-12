@@ -214,13 +214,13 @@ total_lines = wc_count(list_filename)
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
-with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename) as fp:
+with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename, 'r', encoding='utf-8') as fp:
 	threading.Thread(target=every_second, daemon=True).start()
 	for i in range(int(start_from_line)):
 		line = fp.readline()
 	while True:
 		while jobs_que.qsize()<threads_count*2:
-			line = fp.readline().decode('utf-8').strip()
+			line = fp.readline().strip()
 			if not line and line!='':
 				no_jobs_left = True
 				break
