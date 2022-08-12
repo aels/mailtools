@@ -6,12 +6,11 @@ try:
 	from dns import resolver
 except ImportError:
 	subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'psutil tqdm dnspython'])
-finally:
 	import psutil,tqdm
 	from dns import resolver
 
 # ~~~~ SMTP checker script ~~~~~~~~~~~~~~~~~~
-# ~~~~ MadCat checker v1.3 ~~~~~~~~~~~~~~~~~~
+# ~~~~ MadCat checker v1.4 ~~~~~~~~~~~~~~~~~~
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
@@ -28,6 +27,18 @@ class c:
 	END = "\033[0m"
 	BOLD = "\033[1m"
 	UNDERLINE = "\033[4m"
+
+def tune_network():
+	try:
+		os.system("ulimit -n 15000")
+		os.system("ulimit -n 65535")
+		if os.geteuid() == 0:
+			print('tuning network settings...')
+			os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
+		else:
+			print('Better to run this script as root to allow better network performance')
+	except:
+		pass
 
 def get_mx_server(domain):
 	global mx_cache, timeout
@@ -113,7 +124,7 @@ def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	server_obj.quit()
 
 def worker_item(jobs_que, results):
-	global threads_counter, verify_email, goods, no_jobs_left
+	global threads_counter, verify_email, goods, no_jobs_left, loop_times
 	self = threading.current_thread()
 	while True:
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
@@ -126,6 +137,7 @@ def worker_item(jobs_que, results):
 				time.sleep(1)
 				continue
 		else:
+			time_start = time.perf_counter()
 			smtp_server, port, smtp_user, password = jobs_que.get()
 			results.put(f'{c.WARN}{c.BOLD}trying mx for{c.END} {smtp_user}:{password}')
 			if not smtp_server or not port:
@@ -144,16 +156,20 @@ def worker_item(jobs_que, results):
 				e = str(e).strip()[0:100]
 				results.put(f'{smtp_server}:{port} - {c.FAIL}{c.BOLD}{e}{c.END}')
 				open(errors_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password} - {e}\n")
+			loop_times.append(time.perf_counter() - time_start)
+			if len(loop_times)>50:
+				loop_times.pop(0)
 	threads_counter -= 1
 
 def every_second():
-	global mem_usage, cpu_usage, jobs_que, results, threads_counter, no_jobs_left
+	global mem_usage, cpu_usage, jobs_que, results, threads_counter, no_jobs_left, loop_times, loop_time
 	time.sleep(1)
 	while True:
 		if no_jobs_left and threads_counter == 0:
 			break
 		mem_usage = psutil.virtual_memory()[2]
 		cpu_usage = max(psutil.cpu_percent(percpu=True))
+		loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
 		if mem_usage<80 and cpu_usage<80:
 			threading.Thread(target=worker_item, args=(jobs_que,results), daemon=True).start()
 			threads_counter += 1
@@ -170,7 +186,10 @@ threads_counter = 0
 mx_cache = {}
 timeout = 3
 no_jobs_left = False
+loop_times = []
+loop_time = 0
 
+tune_network()
 try:
 	list_filename = sys.argv[1]
 	smtp_filename = sys.argv[1].split('.')
@@ -218,7 +237,7 @@ with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(
 			thread_status = results.get()
 			tqdm.tqdm.write(thread_status)
 			if 'trying' in thread_status:
-				progress_bar.set_description(f'mem: {c.BOLD}{mem_usage}{c.END}%, cpu: {c.BOLD}{cpu_usage}{c.END}%, threads: {c.BOLD}{threads_counter}{c.END}, goods: {c.BOLD}{c.GREEN}{goods}{c.END}')
+				progress_bar.set_description(f'loop time: {c.BOLD}{loop_time}{c.END}s, mem: {c.BOLD}{mem_usage}{c.END}%, cpu: {c.BOLD}{cpu_usage}{c.END}%, threads: {c.BOLD}{threads_counter}{c.END}, goods: {c.BOLD}{c.GREEN}{goods}{c.END}')
 				progress_bar.update(1)
 		if threads_counter == 0 and no_jobs_left:
 			progress_bar.close()
