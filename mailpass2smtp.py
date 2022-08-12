@@ -124,7 +124,7 @@ def smtp_connect_and_send(smtp_server, port, smtp_user, password):
 	server_obj.quit()
 
 def worker_item(jobs_que, results):
-	global threads_counter, verify_email, goods, no_jobs_left, loop_times
+	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times
 	self = threading.current_thread()
 	while True:
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
@@ -157,7 +157,7 @@ def worker_item(jobs_que, results):
 				results.put(f'{smtp_server}:{port} - {c.FAIL}{c.BOLD}{e}{c.END}')
 				open(errors_filename, 'a').write(f"{smtp_server}|{port}|{smtp_user}|{password} - {e}\n")
 			loop_times.append(time.perf_counter() - time_start)
-			if len(loop_times)>50:
+			if len(loop_times)>threads_count:
 				loop_times.pop(0)
 	threads_counter -= 1
 
@@ -220,7 +220,7 @@ with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(
 		line = fp.readline()
 	while True:
 		while jobs_que.qsize()<threads_count*2:
-			line = fp.readline().strip()
+			line = fp.readline().decode('utf-8').strip()
 			if not line and line!='':
 				no_jobs_left = True
 				break
