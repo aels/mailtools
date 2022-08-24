@@ -18,12 +18,11 @@ except ImportError:
 #~~~~~~~~~~~~~~~~~~ replace this with your values ~~~~~~~~~~~~~~~~~~~
 
 smtp_list_file          = 'smtp_list.txt'
-mail_list_file          = 'mail_bank_corp_19k_validated.txt'
-mail_body_file          = 'mail_body_conti.txt'
-attachment_files        = 'loan_case.html'
-# attachment_files        = ''
+mail_list_file          = '/Users/User/Downloads/Telegram Desktop/BadAdvert-CEOs_validated.txt'
+mail_body_file          = '/Users/User/Downloads/Telegram Desktop/letter-teams-short.html'
+attachment_files        = ''
 redirects_file          = ''
-mails_to_verify         = 'foxtestbox@outlook.com,jolakic388@hekarro.com,blinova-29-tania@mail.ru'
+mails_to_verify         = 'foxtestbox@outlook.com,steve@washmen.us'
 verify_every            = 1000
 threads_count           = 30
 connection_timeout      = 5
@@ -65,7 +64,7 @@ def show_banner():
 	time.sleep(3)
 
 def quit(signum, frame):
-	print('\b'*10+f"{c.WARN}Exiting...{c.END}\n")
+	print('\b'*10+f'{c.CYAN}{c.BOLD}Exiting...{c.END}\n')
 	sys.exit(0)
 
 def worker_item(mail_que, smtp_que, worker_results):
@@ -182,7 +181,6 @@ def smtp_connect(smtp_server, port, user, password):
 
 def smtp_sendmail(server_obj,mail_from,mail_str):
 	global mail_body_file, attachment_files, redirects_file
-	mail_str = mail_str.replace('|',';').replace(':',';')
 	mail_str += ';'*(2-mail_str.count(';'))
 	mail_to, one, two = mail_str.split(';')
 	mail_subject_and_body = open(mail_body_file,'r').read().split('\n\n')
@@ -199,14 +197,14 @@ def smtp_sendmail(server_obj,mail_from,mail_str):
 	body = expand_macros(body,subs)
 
 	message = MIMEMultipart()
-	message['From'] = f'Lesya Blyzniouk <{mail_from}>'
+	message['From'] = f'{two} events <{mail_from}>'
 	# message['From'] = f'{random_name} <{mail_from}>'
 	message['To'] = mail_to
 	message['Subject'] = subject
 	message.attach(MIMEText(body, 'html', 'utf-8'))
 	for attachment_file in attachment_files.split(','):
-		attachment_display_name = attachment_file.split('/')[-1]
 		if os.path.isfile(attachment_file):
+			attachment_display_name = attachment_file.split('/')[-1]
 			attachment_body = open(attachment_file, 'rb').read()
 			attachment_body = expand_macros(attachment_body,subs)
 			attachment = MIMEApplication(attachment_body)
@@ -249,9 +247,10 @@ def fill_queues():
 	global mail_list,smtp_list,verify_every,mails_to_verify,mail_que,smtp_que,threads_count,total_mails_to_sent
 	j = 0
 	for i in mail_list:
+		i = re.sub(r'[|:,]', ';', i)
 		if j % verify_every == 0:
 			for mail_to_verify in mails_to_verify.split(','):
-				mail_que.put(mail_to_verify+';Mark Mayflower;12345678')
+				mail_que.put(re.sub(r'^.+@[^;]+', mail_to_verify, i))
 		mail_que.put(i)
 		j += 1
 	for i in smtp_list:
@@ -262,17 +261,13 @@ def fill_queues():
 	if threads_count > smtp_que.qsize():
 		threads_count = smtp_que.qsize()
 
-def fill_threads_statuses():
-	global threads_count,threads_statuses
-	sys.stdout.write('\n'*threads_count)
-	for i in range(threads_count):
-		threads_statuses['thread'+str(i)] = 'no data'
-
 def setup_threads():
-	global threads_count,threads_counter,mail_que,smtp_que,worker_results
+	global threads_count,threads_counter,threads_statuses,mail_que,smtp_que,worker_results
+	sys.stdout.write('\n'*threads_count)
 	for i in range(threads_count):
 		threading.Thread(name='thread'+str(i),target=worker_item,args=(mail_que,smtp_que,worker_results,),daemon=True).start()
 		threads_counter += 1
+		threads_statuses['thread'+str(i)] = 'no data'
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -287,7 +282,6 @@ worker_results = queue.Queue()
 
 show_banner()
 read_files()
-fill_threads_statuses()
 fill_queues()
 setup_threads()
 
