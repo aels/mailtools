@@ -14,6 +14,9 @@ except ImportError:
 # ~~~~ https://github.com/aels/mailtools ~~~~
 # ~~~~ contact: https://t.me/freebug ~~~~~~~~
 
+# mail providers, where SMTP access is desabled by default
+bad_mail_servers = 'gmail,google,mail.ru,yahoo'
+
 if sys.version_info[0] < 3:
 	raise Exception("Python 3 or a more recent version is required.")
 
@@ -200,9 +203,9 @@ try:
 	if not is_valid_email(verify_email):
 		raise
 	try:
-		exclude_mail_hosts = ','.join(sys.argv[3],'gmail,google,mail.ru,yahoo')
+		exclude_mail_hosts = ','.join(sys.argv[3],bad_mail_servers)
 	except:
-		exclude_mail_hosts = 'gmail,google,mail.ru,yahoo'
+		exclude_mail_hosts = bad_mail_servers
 	try:
 		start_from_line = int(sys.argv[4])
 	except:
