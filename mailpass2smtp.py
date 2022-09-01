@@ -47,7 +47,7 @@ def get_mx_server(domain):
 			mx_host = data.exchange.to_text()[0:-1]
 			break
 		for h in [mx_host,domain,'smtp.'+domain,'mail.'+domain,'webmail.'+domain,'mx.'+domain]:
-			for p in [587,465]:
+			for p in [25,587,465]:
 				try:
 					s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 					s.setblocking(0)
@@ -200,9 +200,9 @@ try:
 	if not is_valid_email(verify_email):
 		raise
 	try:
-		exclude_mail_hosts = sys.argv[3]
+		exclude_mail_hosts = ','.join(sys.argv[3],'gmail,google,mail.ru,yahoo')
 	except:
-		exclude_mail_hosts = 'sorry,mom'
+		exclude_mail_hosts = 'gmail,google,mail.ru,yahoo'
 	try:
 		start_from_line = int(sys.argv[4])
 	except:
@@ -227,8 +227,8 @@ with tqdm.tqdm(total=total_lines,initial=start_from_line) as progress_bar, open(
 			if line.count('|')==3:
 				jobs_que.put((line.split('|')))
 			else:
-				line = re.sub('[;,\t| \'"]+', ':', line)
-				fields = line.split(':')
+				line = re.sub('[:,\t| \'"]+', ';', line)
+				fields = line.split(';')
 				if len(fields)>1 and is_valid_email(fields[email_collumn]) and len(fields[password_collumn])>7 and not is_ignored_host(fields[email_collumn]):
 					jobs_que.put((False,False,fields[email_collumn],fields[password_collumn]))
 				else:
