@@ -160,7 +160,8 @@ def smtp_connect_and_send(smtp_server, port, template, smtp_user, password):
 	smtp_login = template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
 	server_obj = smtp_class(smtp_server_ip, port, timeout=5)
-	server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
+	server_obj.starttls(context=ssl._create_unverified_context())
+	# server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
 	server_obj.ehlo()
 	server_obj.login(smtp_login, password)
 	server_obj.sendmail(smtp_user, verify_email, '\n'.join((headers, message.as_string())))
