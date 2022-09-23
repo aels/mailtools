@@ -171,7 +171,8 @@ def worker_item(jobs_que, results_que):
 	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times, template
 	self = threading.current_thread()
 	while True:
-		if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
+		if mem_usage>90 and threads_counter>threads_count:
+		# if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
 			break
 		if jobs_que.empty():
 			if no_jobs_left:
