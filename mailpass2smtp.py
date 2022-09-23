@@ -82,7 +82,7 @@ def bytes_to_mbit(b):
 def guess_smtp_server(domain):
 	try:
 		for h in [resolver.resolve(domain, 'MX')[0].exchange.to_text()[0:-1], domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]:
-			for p in [25, 587, 465]:
+			for p in [587, 465, 25]:
 				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				s.setblocking(0)
 				s.settimeout(1)
@@ -163,7 +163,7 @@ def smtp_connect_and_send(smtp_server, port, template, smtp_user, password):
 	server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
 	server_obj.ehlo()
 	server_obj.login(smtp_login, password)
-	server_obj.sendmail(smtp_user, verify_email, '\n'.join(headers, message.as_string()))
+	server_obj.sendmail(smtp_user, verify_email, '\n'.join((headers, message.as_string())))
 	server_obj.quit()
 
 def worker_item(jobs_que, results_que):
@@ -231,7 +231,7 @@ try:
 	if not is_valid_email(verify_email):
 		raise
 	try:
-		exclude_mail_hosts = ','.join(sys.argv[3], bad_mail_servers)
+		exclude_mail_hosts = ','.join((sys.argv[3], bad_mail_servers))
 	except:
 		exclude_mail_hosts = bad_mail_servers
 	start_from_line = int(sys.argv[-1]) if re.match(r'^\d+$', sys.argv[-1]) else 0
