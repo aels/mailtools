@@ -74,6 +74,7 @@ def tune_network():
 	try:
 		os.system('ulimit -n 15000')
 		os.system('ulimit -n 65535')
+		os.system('ulimit -n 100000')
 		# if os.geteuid() == 0:
 		# 	print('tuning network settings...')
 		# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
@@ -112,7 +113,7 @@ def get_smtp_server(domain):
 	global mx_cache
 	domain = domain.lower()
 	if not domain in mx_cache:
-		xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain).text
+		xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain, timeout=10).text
 		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
 		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>([\d+]+)</port>', xml)
 		smtp_login_template = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
@@ -317,12 +318,13 @@ progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 
-print(inf+f'total lines to procceed:       {bold(num(total_lines))}')
-print(inf+f'email & password colls:        {bold(email_collumn)} and {bold(password_collumn)}')
 print(inf+f'source filename:               {bold(list_filename)}')
 print(inf+f'goods filename:                {bold(smtp_filename)}')
 print(inf+f'bads & report filename:        {bold(errors_filename)}')
+print(inf+f'total lines to procceed:       {bold(num(total_lines))}')
+print(inf+f'email & password colls:        {bold(email_collumn)} and {bold(password_collumn)}')
 print(inf+f'verification email:            {bold(verify_email)}')
+print(inf+f'ignored email hosts:           {bold(exclude_mail_hosts)}')
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
 threading.Thread(target=every_second, daemon=True).start()
