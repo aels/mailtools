@@ -215,7 +215,7 @@ def worker_item(jobs_que, results_que):
 				results_que.put(bold('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
 				results_que.put(green(smtp_user+':'+password,1)+green(' sent to '+verify_email,0))
-				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n').close()
+				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
