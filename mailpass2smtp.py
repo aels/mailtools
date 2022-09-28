@@ -27,7 +27,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     \033[1mMadCat SMTP Checker & Cracker v22.09.26\033[0m
+          ╙     \033[1mMadCat SMTP Checker & Cracker v22.09.28\033[0m
                 Made by \033[1mAels\033[0m for community: \033[1mhttps://xss.is\033[0m - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug\n\n"""
@@ -123,11 +123,10 @@ def get_smtp_server(domain):
 	return mx_cache[domain]
 
 def get_rand_ip_of_host(host):
-	if len(socket.getaddrinfo('localhost', 0, family=socket.AF_INET6)):
-		family = socket.AF_INET6
-	else:
-		family = socket.AF_INET
-	return random.choice(socket.getaddrinfo(host, 0, family=family, proto=socket.IPPROTO_TCP))[4][0]
+	try:
+		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET6, proto=socket.IPPROTO_TCP))[4][0]
+	except:
+		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
 
 def quit(signum, frame):
 	print('\r\n'+inf+cyan('Exiting... See ya later. Bye.',1))
