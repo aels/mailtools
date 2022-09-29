@@ -231,18 +231,21 @@ def every_second():
 	net_usage_old = 0
 	time.sleep(1)
 	while True:
-		speed.append(progress - progress_old)
-		speed.pop(0) if len(speed)>10 else 0
-		progress_old = progress
-		mem_usage = round(psutil.virtual_memory()[2])
-		cpu_usage = round(sum(psutil.cpu_percent(percpu=True))/os.cpu_count())
-		net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
-		net_usage_old += net_usage
-		loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
-		if mem_usage<80 and cpu_usage<80 and threads_counter<max_threads:
-			threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
-			threads_counter += 1
-		time.sleep(0.1)
+		try:
+			speed.append(progress - progress_old)
+			speed.pop(0) if len(speed)>10 else 0
+			progress_old = progress
+			mem_usage = round(psutil.virtual_memory()[2])
+			cpu_usage = round(sum(psutil.cpu_percent(percpu=True))/os.cpu_count())
+			net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
+			net_usage_old += net_usage
+			loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
+			if mem_usage<80 and cpu_usage<80 and threads_counter<max_threads:
+				threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
+				threads_counter += 1
+			time.sleep(0.1)
+		except:
+			pass
 
 def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, ignored
