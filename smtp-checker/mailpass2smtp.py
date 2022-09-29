@@ -13,6 +13,7 @@ except ImportError:
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
 custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
+autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 
 if sys.version_info[0] < 3:
 	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
@@ -91,7 +92,7 @@ def is_listening(ip, port):
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.setblocking(0)
-		s.settimeout(5)
+		s.settimeout(3)
 		s = ssl.wrap_socket(s) if int(port) == 465 else s
 		s.connect((ip, int(port)))
 		s.close()
@@ -114,9 +115,9 @@ def get_alive_neighbor(ip, port):
 	if ':' in str(ip):
 		return ip
 	else:
-		last = int(ip.split('.')[-1])
-		prev_neighbor_ip = re.sub(r'\.\d+$', '.'+str(last - 1 if last>0 else 2), ip)
-		next_neighbor_ip = re.sub(r'\.\d+$', '.'+str(last + 1 if last<255 else 253), ip)
+		tail = int(ip.split('.')[-1])
+		prev_neighbor_ip = re.sub(r'\.\d+$', '.'+str(tail - 1 if tail>0 else 2), ip)
+		next_neighbor_ip = re.sub(r'\.\d+$', '.'+str(tail + 1 if tail<255 else 253), ip)
 		if is_listening(prev_neighbor_ip, port):
 			return prev_neighbor_ip
 		if is_listening(next_neighbor_ip, port):
@@ -132,9 +133,9 @@ def guess_smtp_server(domain):
 	except:
 		pass
 	for host in domains_arr:
+		ip = get_rand_ip_of_host(host)
 		for port in [587, 465, 25]:
 			try:
-				ip = get_rand_ip_of_host(host)
 				if is_listening(ip, port):
 					return (host, str(port), default_login_template)
 			except:
@@ -146,7 +147,7 @@ def get_smtp_config(domain):
 	domain = domain.lower()
 	if not domain in mx_cache:
 		try:
-			xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain, timeout=10).text
+			xml = requests.get(autoconfig_url+domain, timeout=5).text
 		except:
 			xml = ''
 		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
@@ -351,7 +352,7 @@ mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or 300
+max_threads = debuglevel or 400
 threads_counter = 0
 mx_cache = {}
 no_jobs_left = False
