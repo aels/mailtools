@@ -97,7 +97,7 @@ def guess_smtp_server(domain):
 			try:
 				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				s.setblocking(0)
-				s.settimeout(1)
+				s.settimeout(5)
 				s = ssl.wrap_socket(s) if p == 465 else s
 				s.connect((h, p))
 				s.close()
