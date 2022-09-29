@@ -137,7 +137,7 @@ def get_free_smtp_server(smtp_server, port):
 		smtp_server_ip = get_rand_ip_of_host(smtp_server)
 		return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 	except Exception as e:
-		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', e.lower()):
+		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
 			smtp_server_ip = get_rand_ip_in_subnet(get_rand_ip_of_host(smtp_server))
 			return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 		else:
