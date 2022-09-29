@@ -12,6 +12,7 @@ except ImportError:
 
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
+custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
 
 if sys.version_info[0] < 3:
 	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
@@ -86,27 +87,61 @@ def bytes_to_mbit(b):
 def normalize_delimiters(s):
 	return re.sub(r'[;,\t| \'"]+', ':', s)
 
-def guess_smtp_server(domain):
-	global default_login_template
+def is_listening(ip, port):
 	try:
-		mx_domain = resolver.resolve(domain, 'MX')[0].exchange.to_text()[0:-1]
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.setblocking(0)
+		s.settimeout(5)
+		s = ssl.wrap_socket(s) if int(port) == 465 else s
+		s.connect((ip, int(port)))
+		s.close()
+		return True
 	except:
-		mx_domain = domain
-	for h in [domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain, mx_domain]:
-		for p in [587, 465, 25]:
+		return False
+
+def get_rand_ip_of_host(host):
+	global resolver_obj
+	try:
+		ip_array = resolver_obj.resolve(host, 'aaaa')
+	except:
+		try:
+			ip_array = resolver_obj.resolve(host, 'a')
+		except:
+			raise Exception('No A record found for '+host)
+	return str(random.choice(ip_array))
+
+def get_alive_neighbor(ip, port):
+	if ':' in str(ip):
+		return ip
+	else:
+		last = int(ip.split('.')[-1])
+		prev_neighbor_ip = re.sub(r'\.\d+$', '.'+str(last - 1 if last>0 else 2), ip)
+		next_neighbor_ip = re.sub(r'\.\d+$', '.'+str(last + 1 if last<255 else 253), ip)
+		if is_listening(prev_neighbor_ip, port):
+			return prev_neighbor_ip
+		if is_listening(next_neighbor_ip):
+			return next_neighbor_ip
+		raise Exception('No listening neighbors found for '+ip+':'+str(port))
+
+def guess_smtp_server(domain):
+	global default_login_template, resolver_obj
+	domains_arr = [domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
+	try:
+		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
+		domains_arr += [mx_domain]
+	except:
+		pass
+	for host in domains_arr:
+		for port in [587, 465, 25]:
 			try:
-				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				s.setblocking(0)
-				s.settimeout(5)
-				s = ssl.wrap_socket(s) if p == 465 else s
-				s.connect((h, p))
-				s.close()
-				return (h, str(p), default_login_template)
+				ip = get_rand_ip_of_host(host)
+				if is_listening(ip, port):
+					return (host, str(port), default_login_template)
 			except:
 				pass
 	return False
 
-def get_smtp_server(domain):
+def get_smtp_config(domain):
 	global mx_cache
 	domain = domain.lower()
 	if not domain in mx_cache:
@@ -125,28 +160,14 @@ def get_smtp_server(domain):
 		raise Exception('no connection details found for '+domain)
 	return mx_cache[domain]
 
-def get_rand_ip_of_host(host):
-	try:
-		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET6, proto=socket.IPPROTO_TCP))[4][0]
-	except:
-		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
-
-def get_ip_neighbor(ip):
-	if ':' in ip:
-		return ip
-	else:
-		last = int(ip.split('.')[-1])
-		last_neighbor = last - 1 if last>0 else 1
-		return re.sub(r'\.\d+$', '.'+str(last_neighbor), ip)
-
 def get_free_smtp_server(smtp_server, port):
-	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
+	smtp_class = smtplib.SMTP_SSL if str(port) == '465' else smtplib.SMTP
+	smtp_server_ip = get_rand_ip_of_host(smtp_server)
 	try:
-		smtp_server_ip = get_rand_ip_of_host(smtp_server)
 		return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 	except Exception as e:
 		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
-			smtp_server_ip = get_ip_neighbor(get_rand_ip_of_host(smtp_server))
+			smtp_server_ip = get_alive_neighbor(smtp_server_ip, port)
 			return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 		else:
 			raise Exception(e)
@@ -234,7 +255,7 @@ def worker_item(jobs_que, results_que):
 			try:
 				results_que.put(yellow('getting settings for ',1)+yellow(smtp_user+':'+password,0))
 				if not smtp_server or not port:
-					smtp_server, port, login_template = get_smtp_server(smtp_user.split('@')[1])
+					smtp_server, port, login_template = get_smtp_config(smtp_user.split('@')[1])
 				results_que.put(bold('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
 				results_que.put(green(smtp_user+':'+password,1)+(verify_email and green(' sent to '+verify_email,0)))
@@ -340,6 +361,8 @@ speed = []
 progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
+resolver_obj = resolver.Resolver()
+resolver_obj.nameservers = custom_dns_nameservers
 
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
