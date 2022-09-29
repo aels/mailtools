@@ -110,7 +110,10 @@ def get_smtp_server(domain):
 	global mx_cache
 	domain = domain.lower()
 	if not domain in mx_cache:
-		xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain, timeout=10).text
+		try:
+			xml = requests.get('https://autoconfig.thunderbird.net/v1.1/'+domain, timeout=10).text
+		except:
+			xml = ''
 		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
 		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>([\d+]+)</port>', xml)
 		smtp_login_template = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
@@ -327,7 +330,7 @@ mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or 500
+max_threads = debuglevel or 300
 threads_counter = 0
 mx_cache = {}
 no_jobs_left = False
