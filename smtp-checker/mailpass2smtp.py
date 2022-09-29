@@ -119,7 +119,7 @@ def get_alive_neighbor(ip, port):
 		next_neighbor_ip = re.sub(r'\.\d+$', '.'+str(last + 1 if last<255 else 253), ip)
 		if is_listening(prev_neighbor_ip, port):
 			return prev_neighbor_ip
-		if is_listening(next_neighbor_ip):
+		if is_listening(next_neighbor_ip, port):
 			return next_neighbor_ip
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
