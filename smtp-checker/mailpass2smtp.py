@@ -128,8 +128,13 @@ def get_rand_ip_of_host(host):
 	except:
 		return random.choice(socket.getaddrinfo(host, 0, family=socket.AF_INET, proto=socket.IPPROTO_TCP))[4][0]
 
-def get_rand_ip_in_subnet(ip):
-	return re.sub(r'\.\d+$', '.'+str(random.choice(range(255))), str(ip))
+def get_ip_neighbor(ip):
+	if ':' in ip:
+		return ip
+	else:
+		last = int(ip.split('.')[-1])
+		last_neighbor = last - 1 if last>0 else 1
+		return re.sub(r'\.\d+$', '.'+str(last_neighbor), ip)
 
 def get_free_smtp_server(smtp_server, port):
 	smtp_class = smtplib.SMTP_SSL if port == '465' else smtplib.SMTP
@@ -138,7 +143,7 @@ def get_free_smtp_server(smtp_server, port):
 		return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 	except Exception as e:
 		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
-			smtp_server_ip = get_rand_ip_in_subnet(get_rand_ip_of_host(smtp_server))
+			smtp_server_ip = get_ip_neighbor(get_rand_ip_of_host(smtp_server))
 			return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
 		else:
 			raise Exception(e)
