@@ -27,7 +27,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     \033[1mMadCat SMTP Checker & Cracker v22.09.28\033[0m
+          ╙     \033[1mMadCat SMTP Checker & Cracker v22.09.29\033[0m
                 Made by \033[1mAels\033[0m for community: \033[1mhttps://xss.is\033[0m - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug\n\n"""
@@ -214,7 +214,7 @@ def worker_item(jobs_que, results_que):
 					smtp_server, port, login_template = get_smtp_server(smtp_user.split('@')[1])
 				results_que.put(bold('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
-				results_que.put(green(smtp_user+':'+password,1)+green(' sent to '+verify_email,0))
+				results_que.put(green(smtp_user+':'+password,1)+(verify_email and green(' sent to '+verify_email,0)))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 				time.sleep(1)
