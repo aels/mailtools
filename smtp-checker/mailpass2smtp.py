@@ -330,15 +330,15 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 	for i in range(start_from_line):
 		line = fp.readline()
 	while True:
-		while jobs_que.qsize()<min_threads*2:
-			line = fp.readline().strip()
-			if not line and line != '':
+		while not no_jobs_left and jobs_que.qsize()<min_threads*2:
+			line = fp.readline()
+			if not line:
 				no_jobs_left = True
 				break
 			if line.count('|') == 3:
-				jobs_que.put((line.split('|')))
+				jobs_que.put((line.strip().split('|')))
 			else:
-				line = normalize_delimiters(line)
+				line = normalize_delimiters(line.strip())
 				fields = line.split(':')
 				if len(fields)>1 and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>7:
 					jobs_que.put((False, False, fields[email_collumn], fields[password_collumn]))
@@ -346,5 +346,5 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 					ignored += 1
 					progress += 1
 		if threads_counter == 0 and no_jobs_left:
-			print('\r\n'+okk+green('Well done. Bye.',1))
 			break
+	print('\r\n'+okk+green('Well done. Bye.',1))
