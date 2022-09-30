@@ -170,6 +170,7 @@ def get_smtp_config(domain):
 					ip = get_rand_ip_of_host(smtp_qa_host)
 					if is_listening(ip, smtp_port):
 						smtp_host = smtp_qa_host
+						break
 				except:
 					pass
 			mx_cache[domain] = (smtp_host, smtp_port, smtp_login_template)
