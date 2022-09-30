@@ -54,7 +54,7 @@ def red(s,type):
 def green(s,type):
 	return f'\033[{str(type)};32m'+str(s)+z
 
-def yellow(s,type):
+def orange(s,type):
 	return f'\033[{str(type)};33m'+str(s)+z
 
 def blue(s,type):
@@ -164,13 +164,14 @@ def get_smtp_config(domain):
 		smtp_port = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>(\d+)</port>', xml))
 		smtp_login_template = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml))
 		if smtp_host and smtp_port and smtp_login_template:
-			try:
-				smtp_qa_host = re.sub(r'^[\w-]+\.', smtp_host.split('.')[0]+'-qa.', smtp_host)
-				ip = get_rand_ip_of_host(smtp_qa_host)
-				if is_listening(ip, smtp_port):
-					smtp_host = smtp_qa_host
-			except:
-				pass
+			for postfix in ['-qa', '-qa2', '-nokia']:
+				smtp_qa_host = re.sub(r'^[\w-]+\.', smtp_host.split('.')[0]+postfix+'.', smtp_host)
+				try:
+					ip = get_rand_ip_of_host(smtp_qa_host)
+					if is_listening(ip, smtp_port):
+						smtp_host = smtp_qa_host
+				except:
+					pass
 			mx_cache[domain] = (smtp_host, smtp_port, smtp_login_template)
 		else:
 			mx_cache[domain] = guess_smtp_server(domain)
@@ -281,7 +282,7 @@ def worker_item(jobs_que, results_que):
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
-				results_que.put(cyan(smtp_server+':'+port+' - '+str(e).strip()[0:130],0))
+				results_que.put(orange(smtp_server+':'+port+' - '+str(e).strip()[0:130],0))
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
