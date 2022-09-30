@@ -15,11 +15,21 @@ bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
 custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
 autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 
+b   = '\033[1m'
+z   = '\033[0m'
+wl  = '\033[2K'
+up  = '\033[F'
+err = b+'[\033[31mx\033[37m] '+z
+okk = b+'[\033[32m+\033[37m] '+z
+wrn = b+'[\033[33m!\033[37m] '+z
+inf = b+'[\033[34m?\033[37m] '+z
+npt = b+'[\033[37m>\033[37m] '+z
+
 if sys.version_info[0] < 3:
 	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
 def show_banner():
-	banner = """
+	banner = f"""
 
               ,▄   .╓███?                ,, .╓███)                              
             ╓███| ╓█████▌               ╓█/,███╙                  ▄▌            
@@ -29,47 +39,41 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     \033[1mMadCat SMTP Checker & Cracker v22.09.29\033[0m
-                Made by \033[1mAels\033[0m for community: \033[1mhttps://xss.is\033[0m - forum of security professionals
+          ╙     {b}MadCat SMTP Checker & Cracker v22.09.30{z}
+                Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
-                https://t.me/freebug\n\n"""
+                https://t.me/freebug
+	"""
 	for line in banner.splitlines():
 		print(line)
 		time.sleep(0.05)
 
 def red(s,type):
-	return f'\033[{str(type)};31m{str(s)}\033[0m'
+	return f'\033[{str(type)};31m'+str(s)+z
 
 def green(s,type):
-	return f'\033[{str(type)};32m{str(s)}\033[0m'
+	return f'\033[{str(type)};32m'+str(s)+z
 
 def yellow(s,type):
-	return f'\033[{str(type)};33m{str(s)}\033[0m'
+	return f'\033[{str(type)};33m'+str(s)+z
 
 def blue(s,type):
-	return f'\033[{str(type)};34m{str(s)}\033[0m'
+	return f'\033[{str(type)};34m'+str(s)+z
 
 def violet(s,type):
-	return f'\033[{str(type)};35m{str(s)}\033[0m'
+	return f'\033[{str(type)};35m'+str(s)+z
 
 def cyan(s,type):
-	return f'\033[{str(type)};36m{str(s)}\033[0m'
+	return f'\033[{str(type)};36m'+str(s)+z
 
 def white(s,type):
-	return f'\033[{str(type)};37m{str(s)}\033[0m'
+	return f'\033[{str(type)};37m'+str(s)+z
 
 def bold(s):
-	return f'\033[1m{str(s)}\033[0m'
+	return b+str(s)+z
 
 def num(s):
 	return f'{int(s):,}'
-
-err = '\033[1m[\033[31mx\033[37m]\033[0m '
-okk = '\033[1m[\033[32m+\033[37m]\033[0m '
-wrn = '\033[1m[\033[33m!\033[37m]\033[0m '
-inf = '\033[1m[\033[34m?\033[37m]\033[0m '
-npt = '\033[1m[\033[37m>\033[37m]\033[0m '
-
 
 def tune_network():
 	try:
@@ -151,7 +155,7 @@ def get_smtp_config(domain):
 		except:
 			xml = ''
 		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
-		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>([\d+]+)</port>', xml)
+		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>(\d+)</port>', xml)
 		smtp_login_template = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
 		if smtp_host and smtp_port and smtp_login_template:
 			mx_cache[domain] = (smtp_host[0], smtp_port[0], smtp_login_template[0])
@@ -264,14 +268,14 @@ def worker_item(jobs_que, results_que):
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
-				e = str(e).strip()[0:100]
+				e = str(e).strip()[0:130]
 				results_que.put(red(f'{smtp_server}:{port} - {bold(e)}',0))
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
 
 def every_second():
-	global progress, speed, mem_usage, cpu_usage, net_usage, jobs_que, results_que, threads_counter, min_threads, loop_times, loop_time
+	global progress, speed, mem_usage, cpu_usage, net_usage, jobs_que, results_que, threads_counter, min_threads, loop_times, loop_time, no_jobs_left
 	progress_old = progress
 	net_usage_old = 0
 	time.sleep(1)
@@ -285,7 +289,7 @@ def every_second():
 			net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
 			net_usage_old += net_usage
 			loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
-			if mem_usage<80 and cpu_usage<80 and threads_counter<max_threads:
+			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and not no_jobs_left:
 				threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
 				threads_counter += 1
 			time.sleep(0.1)
@@ -296,21 +300,22 @@ def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, ignored
 	while True:
 		status_bar = (
+			f'{b}['+red('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
 			f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
 			f'[ speed: {bold(num(sum(speed)))}lines/s ({bold(loop_time)}s/loop) ]'+
 			f'[ cpu: {bold(cpu_usage)}% ]'+
 			f'[ mem: {bold(mem_usage)}% ]'+
 			f'[ net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
 			f'[ threads: {bold(threads_counter)} ]'+
-			f'[ goods/ignored: {green(goods,1)}/{bold(ignored)} ]'
+			f'[ goods/ignored: {green(num(goods),1)}/{bold(num(ignored))} ]'
 		)
 		thread_statuses = []
 		while not results_que.empty():
 			thread_statuses.append(results_que.get())
 			progress += 1 if 'getting' in thread_statuses[-1] else 0
 		if len(thread_statuses):
-			print('\033[2K'+'\n'.join(thread_statuses))
-		print('\033[2K'+status_bar+'\033[F')
+			print(wl+'\n'.join(thread_statuses))
+		print(wl+status_bar+up)
 		time.sleep(0.04)
 
 signal.signal(signal.SIGINT, quit)
@@ -323,6 +328,7 @@ try:
 	exclude_mail_hosts = ','.join([i for i in sys.argv if re.match(r'[\w.,-]+$', i) and not os.path.isfile(i) and not re.match(r'(\d+|debug)$', i)]+[bad_mail_servers])
 	start_from_line = int(([i for i in sys.argv if re.match(r'\d+$', i)]+[0]).pop(0))
 	debuglevel = len([i for i in sys.argv if i == 'debug'])
+	rage_mode = len([i for i in sys.argv if i == 'rage'])
 	if not list_filename:
 		print(inf+help_message)
 		while not os.path.isfile(list_filename):
@@ -352,7 +358,7 @@ mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or 400
+max_threads = debuglevel or rage_mode and 600 or 300
 threads_counter = 0
 mx_cache = {}
 no_jobs_left = False
