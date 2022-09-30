@@ -281,7 +281,7 @@ def worker_item(jobs_que, results_que):
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
-				results_que.put(red(smtp_server+':'+port,0)+' - '+str(e).strip()[0:130])
+				results_que.put(cyan(smtp_server+':'+port+' - '+str(e).strip()[0:130],0))
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
