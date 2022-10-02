@@ -280,7 +280,8 @@ def worker_item(jobs_que, results_que):
 				results_que.put(f'getting settings for {smtp_user}:{password}')
 				if not smtp_server or not port:
 					smtp_server_port_arr, login_template = get_smtp_config(smtp_user.split('@')[1])
-					smtp_server, port = random.choice(smtp_server_port_arr).split(':')
+					# smtp_server, port = random.choice(smtp_server_port_arr).split(':')
+					smtp_server, port = smtp_server_port_arr[0].split(':')
 				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
 				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
