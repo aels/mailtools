@@ -156,8 +156,8 @@ def guess_smtp_server(domain):
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
-		if re.search(r'protection\.outlook\.com$', mx_domain):
-			return global_configs_cache['outlook.com']
+		# if re.search(r'protection\.outlook\.com$', mx_domain):
+		# 	return global_configs_cache['outlook.com']
 		domains_arr += [mx_domain]
 		for host in domains_arr:
 			try:
