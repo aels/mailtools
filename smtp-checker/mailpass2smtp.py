@@ -28,8 +28,8 @@ up  = '\033[F'
 err = b+'[\033[31mx\033[37m] '+z
 okk = b+'[\033[32m+\033[37m] '+z
 wrn = b+'[\033[33m!\033[37m] '+z
-inf = b+'[\033[34m?\033[37m] '+z
-npt = b+'[\033[37m>\033[37m] '+z
+inf = b+'[\033[34mi\033[37m] '+z
+npt = b+'[\033[37m?\033[37m] '+z
 
 if sys.version_info[0] < 3:
 	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
