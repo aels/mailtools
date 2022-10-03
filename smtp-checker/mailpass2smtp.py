@@ -11,14 +11,14 @@ except ImportError:
 	from dns import resolver
 
 # mail providers, where SMTP access is desabled by default
-bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo'
+bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
 # needed for faster and stable dns resolutions
 custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
 # for the sake of history
 autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
-# dangerous domains
+# dangerous domains, skipping them all
 dangerous_domains = r'localhost|invalid|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|free|brukalai|metunet|excello'
 
 b   = '\033[1m'
@@ -94,15 +94,15 @@ def tune_network():
 
 def load_smtp_configs():
 	global autoconfig_data_url
-	domain_configs_cache = {}
+	domain_configs_cache_local = {}
 	try:
 		configs = requests.get(autoconfig_data_url, timeout=5).text.splitlines()
 		for line in configs:
 			line = line.strip().split(';')
 			if len(line) != 3:
 				continue
-			domain_configs_cache[line[0]] = (line[1].split(','), line[2])
-		return domain_configs_cache
+			domain_configs_cache_local[line[0]] = (line[1].split(','), line[2])
+		return domain_configs_cache_local
 	except Exception as e:
 		print(err+'failed to load SMTP configs. '+str(e))
 		print(err+'performance will be affected.')
