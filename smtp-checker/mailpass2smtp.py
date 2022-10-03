@@ -424,4 +424,5 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 					progress += 1
 		if threads_counter == 0 and no_jobs_left:
 			break
+		time.sleep(0.04)
 	print('\r\n'+okk+green('Well done. Bye.',1))
