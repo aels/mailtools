@@ -151,7 +151,7 @@ def get_alive_neighbor(ip, port):
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
 def guess_smtp_server(domain):
-	global default_login_template, resolver_obj, domain_configs_cache
+	global default_login_template, resolver_obj, domain_configs_cache, dangerous_domains
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
@@ -173,10 +173,10 @@ def guess_smtp_server(domain):
 	raise Exception('no connection details found for '+domain)
 
 def get_smtp_config(domain):
-	global domain_configs_cache
+	global domain_configs_cache, default_login_template
 	domain = domain.lower()
 	if not domain in domain_configs_cache:
-		domain_configs_cache[domain] = False
+		domain_configs_cache[domain] = ['', default_login_template]
 		domain_configs_cache[domain] = guess_smtp_server(domain)
 	return domain_configs_cache[domain]
 
@@ -276,7 +276,10 @@ def worker_item(jobs_que, results_que):
 				results_que.put(f'getting settings for {smtp_user}:{password}')
 				if not smtp_server or not port:
 					smtp_server_port_arr, login_template = get_smtp_config(smtp_user.split('@')[1])
-					smtp_server, port = random.choice(smtp_server_port_arr).split(':')
+					if len(smtp_server_port_arr):
+						smtp_server, port = random.choice(smtp_server_port_arr).split(':')
+					else:
+						raise Exception('still no connection details for '+smtp_user)
 				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
 				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent\a to '+verify_email,7)))
