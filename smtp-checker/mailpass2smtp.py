@@ -161,7 +161,7 @@ def guess_smtp_server(domain):
 	except:
 		raise Exception('no MX records found for: '+mx_domain)
 	if re.search(dangerous_domains, mx_domain):
-		raise Exception('\033[7;31mskipping dangerous domain: '+mx_domain+'\033[0m')
+		raise Exception('\033[31mskipping dangerous domain: '+mx_domain+' (for '+domain+')\033[0m')
 	if re.search(r'protection\.outlook\.com$', mx_domain):
 		return global_configs_cache['outlook.com']
 	domains_arr += [mx_domain]
