@@ -83,14 +83,15 @@ def num(s):
 
 def tune_network():
 	try:
-		resource.setrlimit(resource.RLIMIT_NOFILE, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+		resource.setrlimit(8, (2**20, 2**20))
+		print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
 		# if os.geteuid() == 0:
 		# 	print('tuning network settings...')
 		# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
 		# else:
 		# 	print('Better to run this script as root to allow better network performance')
-	except:
-		pass
+	except Exception as e:
+		print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
 def load_smtp_configs():
 	global autoconfig_data_url, domain_configs_cache
@@ -329,7 +330,7 @@ def printer(jobs_que, results_que):
 		)
 		thread_statuses = []
 		while not results_que.empty():
-			thread_statuses.append('   '+results_que.get())
+			thread_statuses.append(' '+results_que.get())
 			progress += 1 if 'getting' in thread_statuses[-1] else 0
 		if len(thread_statuses):
 			print(wl+'\n'.join(thread_statuses))
