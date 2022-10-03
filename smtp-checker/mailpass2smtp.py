@@ -158,13 +158,13 @@ def guess_smtp_server(domain):
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
+		domains_arr += [mx_domain]
 	except:
-		raise Exception('no MX records found for: '+mx_domain)
+		raise Exception('no MX records found for: '+domain)
 	if re.search(dangerous_domains, mx_domain):
 		raise Exception('\033[31mskipping dangerous domain: '+mx_domain+' (for '+domain+')\033[0m')
 	if re.search(r'protection\.outlook\.com$', mx_domain):
 		return global_configs_cache['outlook.com']
-	domains_arr += [mx_domain]
 	for host in domains_arr:
 		try:
 			ip = get_rand_ip_of_host(host)
@@ -234,13 +234,9 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 	server_obj = get_free_smtp_server(smtp_server, port)
 	server_obj.set_debuglevel(debuglevel)
 	server_obj.ehlo()
-	# if server_obj.has_extn('starttls') and port != '465':
-	try:
-		if port != '465':
-			server_obj.starttls()
-			server_obj.ehlo()
-	except:
-		pass
+	if server_obj.has_extn('starttls') and port != '465':
+		server_obj.starttls()
+		server_obj.ehlo()
 	server_obj.login(smtp_login, password)
 	if verify_email:
 		headers_arr = [
@@ -382,7 +378,6 @@ net_usage = 0
 min_threads = 50
 max_threads = debuglevel or rage_mode and 600 or 300
 threads_counter = 0
-domain_configs_cache = load_smtp_configs()
 no_jobs_left = False
 loop_times = []
 loop_time = 0
@@ -392,6 +387,7 @@ default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
+domain_configs_cache = load_smtp_configs()
 
 print(okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
