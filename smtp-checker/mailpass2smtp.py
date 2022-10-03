@@ -151,7 +151,7 @@ def get_alive_neighbor(ip, port):
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
 def guess_smtp_server(domain):
-	global default_login_template, resolver_obj, global_configs_cache
+	global default_login_template, resolver_obj, domain_configs_cache
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
@@ -161,7 +161,7 @@ def guess_smtp_server(domain):
 	if re.search(dangerous_domains, mx_domain):
 		raise Exception('\033[31mskipping dangerous domain: '+mx_domain+' (for '+domain+')\033[0m')
 	if re.search(r'protection\.outlook\.com$', mx_domain):
-		return global_configs_cache['outlook.com']
+		return domain_configs_cache['outlook.com']
 	for host in domains_arr:
 		try:
 			ip = get_rand_ip_of_host(host)
