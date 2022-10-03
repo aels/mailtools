@@ -285,9 +285,9 @@ def worker_item(jobs_que, results_que):
 				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent\a to '+verify_email,7)))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
-				time.sleep(1)
 			except Exception as e:
 				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+str(e).strip()[0:130],0))
+			time.sleep(0.04) # unlock other threads a bit
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -310,9 +310,9 @@ def every_second():
 			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and not no_jobs_left:
 				threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
 				threads_counter += 1
-			time.sleep(0.1)
 		except:
 			pass
+		time.sleep(0.1)
 
 def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, ignored
@@ -329,7 +329,7 @@ def printer(jobs_que, results_que):
 		)
 		thread_statuses = []
 		while not results_que.empty():
-			thread_statuses.append(results_que.get())
+			thread_statuses.append('   '+results_que.get())
 			progress += 1 if 'getting' in thread_statuses[-1] else 0
 		if len(thread_statuses):
 			print(wl+'\n'.join(thread_statuses))
