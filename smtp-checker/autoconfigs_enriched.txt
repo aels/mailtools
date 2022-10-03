@@ -213,7 +213,7 @@ embarqmail.com;smtp.centurylink.net:587;%EMAILADDRESS%
 elvis.dk;mail.telenor.dk:587;%EMAILADDRESS%
 fedt.dk;mail.telenor.dk:587;%EMAILADDRESS%
 email.dk;mail.telenor.dk:587;%EMAILADDRESS%
-fastwebnet.it;smtp.fastwebnet.it:587,185-36-72-235.ip277.fastwebnet.it:465,93-57-42-171.ip162.fastwebnet.it:465;%EMAILADDRESS%
+fastwebnet.it;smtp.fastwebnet.it:587;%EMAILADDRESS%
 ewe.net;smtp.ewe.net:587,smtps-1.ewe.net:587;%EMAILADDRESS%
 ewetel.de;smtp.ewe.net:587,smtps-1.ewe.net:587;%EMAILADDRESS%
 flamenco.plala.or.jp;flamenco.mail.plala.or.jp:587,www.cherry.hs.plala.or.jp:465,ruken.hs.plala.or.jp:587,fussa-5e.hs.plala.or.jp:465;%EMAILLOCALPART%
