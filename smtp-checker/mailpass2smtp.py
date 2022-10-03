@@ -93,20 +93,17 @@ def tune_network():
 		pass
 
 def load_smtp_configs():
-	global autoconfig_data_url
-	domain_configs_cache_local = {}
+	global autoconfig_data_url, domain_configs_cache
 	try:
 		configs = requests.get(autoconfig_data_url, timeout=5).text.splitlines()
 		for line in configs:
 			line = line.strip().split(';')
 			if len(line) != 3:
 				continue
-			domain_configs_cache_local[line[0]] = (line[1].split(','), line[2])
-		return domain_configs_cache_local
+			domain_configs_cache[line[0]] = (line[1].split(','), line[2])
 	except Exception as e:
 		print(err+'failed to load SMTP configs. '+str(e))
 		print(err+'performance will be affected.')
-		return False
 
 def first(a):
 	return (a or ['']).pop(0)
@@ -387,7 +384,8 @@ default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
-domain_configs_cache = load_smtp_configs()
+domain_configs_cache = {}
+load_smtp_configs()
 
 print(okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
