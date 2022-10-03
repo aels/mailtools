@@ -113,7 +113,7 @@ def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
 
 def normalize_delimiters(s):
-	return re.sub(r'[;,\t| \'"]+', ':', s)
+	return re.sub(r'"+', '', s).sub(r'[;,\t| \']+', ':', s)
 
 def is_listening(ip, port):
 	try:
