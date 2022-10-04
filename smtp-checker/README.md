@@ -1,6 +1,5 @@
 # mailpass2smtp.py - MadCat proxyless mail:pass and SMTP bruter/cracker/checker
-<img width="1124" alt="image" src="https://user-images.githubusercontent.com/1212294/193919716-2bfcd76c-bf81-4591-a86b-b9d47e465b3c.png">
-<img width="1053" alt="image" src="https://user-images.githubusercontent.com/1212294/193920323-0f4b5ff5-bd84-4c39-ab67-d26d7d74293f.png">
+![image](https://user-images.githubusercontent.com/1212294/193922861-2e0d223e-5236-4d4d-a594-d169b08146a2.png)
 
 SMTP checker, that takes list, containing emails & passwords, in any order and in any format, extract email & password, recover connection params and trying to login with these credentials.
 ## Features
