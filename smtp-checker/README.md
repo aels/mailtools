@@ -39,7 +39,7 @@ where:
 - __start_from_line__ is just a line number to start from, if any (optional).
 - __rage__ is a keyword, by adding which you will increase threads number from 300 to 600, which in case of small server will cause instabilities (optional).
 
-\*good credential pairs will be saved to __original_file_name\_smtp.txt__.
+\*good credential pairs will be saved to __original_file_name__\_smtp.txt.
 
 Or just:
 ```
