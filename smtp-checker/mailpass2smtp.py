@@ -1,13 +1,13 @@
 #!/usr/local/bin/python3
 
-import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, requests, resource
+import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, resource
 try:
-	import psutil
+	import psutil, requests
 	from dns import resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(sys.executable+' -m pip install psutil dnspython')
-	import psutil
+	os.system(sys.executable+' -m pip install psutil requests dnspython')
+	import psutil, requests
 	from dns import resolver
 
 # mail providers, where SMTP access is desabled by default
@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.10.02{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.10.08{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -118,8 +118,7 @@ def normalize_delimiters(s):
 def is_listening(ip, port):
 	try:
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.setblocking(0)
-		s.settimeout(3)
+		s.settimeout(0)
 		s = ssl.wrap_socket(s) if int(port) == 465 else s
 		s.connect((ip, int(port)))
 		s.close()
@@ -130,7 +129,7 @@ def is_listening(ip, port):
 def get_rand_ip_of_host(host):
 	global resolver_obj
 	try:
-		ip_array = resolver_obj.resolve(host, 'aaaa')
+		ip_array = resolver_obj.resolve(host, socket.has_ipv6 and 'aaaa' or 'a')
 	except:
 		try:
 			ip_array = resolver_obj.resolve(host, 'a')
@@ -425,4 +424,4 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 		if threads_counter == 0 and no_jobs_left:
 			break
 		time.sleep(0.04)
-	print('\r\n'+okk+green('Well done. Bye.',1))
+	print('\r\n'+okk+green('well done. bye.',1))
