@@ -1,4 +1,4 @@
-fetched from: https://autoconfig.thunderbird.net/v1.1/, enriched, updated at: 2022-10-02
+fetched from: https://autoconfig.thunderbird.net/v1.1/, enriched, updated at: 2022-10-08
 domain;smtp_host:smtp_port,smtp_host:smtp_port,smtp_host:smtp_port;smtp_login_template
 a1.net;securemail.a1.net:587,bsmtp.a1.net:587,forschung.a1.net:587;%EMAILADDRESS%
 12fuel.dk;mail.telenor.dk:587;%EMAILADDRESS%
@@ -309,7 +309,7 @@ hilarious.com;smtp.mail.com:465;%EMAILADDRESS%
 gmx.co.uk;mail.gmx.com:465;%EMAILADDRESS%
 hahah.nl;smtp.ziggo.nl:587,tracker.data.ziggo.nl:587;%EMAILADDRESS%
 hotmail.be;smtp.office365.com:587,live-nameast3.office365.com:587,outlook-emeaeast2.office365.com:587,outlook-namsouth2.office365.com:587,outlook-namnorthwest3.office365.com:587;%EMAILADDRESS%
-hotmail.co.il;smtp.office365.com:587,live-nameast3.office365.com:587,outlook-emeaeast2.office365.com:587,outlook-namsouth2.office365.com:587,outlook-namnorthwest3.office365.com:587;%EMAILADDRESS%
+hotmail.co.il;smtp.office365.com:587,live-nameast1.office365.com:587,live-nameast2.office365.com:587,live-nameast3.office365.com:587,live-nameast4.office365.com:587,live-nameast5.office365.com:587,live-namnorthwest1.office365.com:587,live-namnorthwest2.office365.com:587,live-namnorthwest3.office365.com:587,live-namnorthwest4.office365.com:587,live-namsouth1.office365.com:587,live-namsouth2.office365.com:587,live-namsouth3.office365.com:587,live-namsouth4.office365.com:587,live-namsouth5.office365.com:587,live-namsouth6.office365.com:587,outlook-emeaeast1.office365.com:587,outlook-emeaeast2.office365.com:587,outlook-emeaeast3.office365.com:587,outlook-emeaeast4.office365.com:587,outlook-namnorthwest1.office365.com:587,outlook-namnorthwest2.office365.com:587,outlook-namnorthwest3.office365.com:587,outlook-namnorthwest4.office365.com:587,outlook-namsouth1.office365.com:587,outlook-namsouth2.office365.com:587,outlook-namsouth3.office365.com:587,outlook-namsouth4.office365.com:587,outlook-namsouth5.office365.com:587,outlook-namsouth6.office365.com:587;%EMAILADDRESS%
 gmx.co.in;mail.gmx.com:465;%EMAILADDRESS%
 hotmail.ca;smtp.office365.com:587,live-nameast3.office365.com:587,outlook-emeaeast2.office365.com:587,outlook-namsouth2.office365.com:587,outlook-namnorthwest3.office365.com:587;%EMAILADDRESS%
 hemmelig.dk;mail.telenor.dk:587;%EMAILADDRESS%
