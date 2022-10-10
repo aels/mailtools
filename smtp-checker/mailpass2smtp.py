@@ -6,7 +6,7 @@ try:
 	from dns import resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(sys.executable+' -m pip install psutil requests dnspython')
+	os.system(sys.executable+' -m pip install psutil requests dnspython pyopenssl')
 	import psutil, requests
 	from dns import resolver
 
@@ -19,7 +19,7 @@ autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
-dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|free|brukalai|metunet|excello'
+dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.10.08{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.10.10{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -158,7 +158,7 @@ def guess_smtp_server(domain):
 		domains_arr += [mx_domain]
 	except:
 		raise Exception('no MX records found for: '+domain)
-	if re.search(dangerous_domains, mx_domain):
+	if re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
 		raise Exception('\033[31mskipping dangerous domain: '+mx_domain+' (for '+domain+')\033[0m')
 	if re.search(r'protection\.outlook\.com$', mx_domain):
 		return domain_configs_cache['outlook.com']
