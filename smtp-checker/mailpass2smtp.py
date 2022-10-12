@@ -235,7 +235,7 @@ def socket_get_free_smtp_server(smtp_server, port):
 	smtp_server_ip = get_rand_ip_of_host(smtp_server)
 	socket_type = socket.AF_INET6 if ':' in smtp_server_ip else socket.AF_INET
 	s = socket.socket(socket_type, socket.SOCK_STREAM)
-	s = ssl.wrap_socket(s) if port == 465 else s
+	s = ssl._create_unverified_context().wrap_socket(s) if port == 465 else s
 	s.settimeout(5)
 	try:
 		s.connect((smtp_server_ip, port))
