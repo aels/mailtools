@@ -13,7 +13,7 @@ except ImportError:
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
 # needed for faster and stable dns resolutions
-custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
+custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222,2001:4860:4860::8844,2a10:50c0::1:ff,2620:0:ccc::2,2620:fe::10,2606:4700:4700::1001,2620:0:ccd::2,2a04:52c0:101:75::75'.split(',')
 # for the sake of history
 autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 # expanded lists of SMTP endpoints, where we can knock
@@ -111,7 +111,7 @@ def load_smtp_configs():
 		print(err+'performance will be affected.')
 
 def first(a):
-	return (a or ['']).pop(0)
+	return (a or [''])[0]
 
 def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
@@ -137,6 +137,10 @@ def is_listening(ip, port):
 
 def get_rand_ip_of_host(host):
 	global resolver_obj
+	try:
+		host = resolver_obj.resolve(host, 'cname')[0].target
+	except:
+		pass
 	try:
 		ip_array = resolver_obj.resolve(host, socket.has_ipv6 and 'aaaa' or 'a')
 	except:
@@ -193,7 +197,7 @@ def get_smtp_config(domain):
 	return domain_configs_cache[domain]
 
 def quit(signum, frame):
-	print('\r\n'+okk+'Exiting... See ya later. Bye.')
+	print('\r\n'+okk+'exiting... see ya later. bye.')
 	sys.exit(0)
 
 def is_valid_email(email):
@@ -455,6 +459,7 @@ default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
+resolver_obj.rotate = True
 domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
