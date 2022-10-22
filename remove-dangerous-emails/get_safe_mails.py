@@ -52,7 +52,7 @@ def show_banner():
                 https://t.me/freebug
 	""".encode('utf-8', errors='ignore')
 	for line in banner.splitlines():
-		print(line.decode('utf-8'))
+		print(line.decode('utf-8', errors='ignore'))
 		time.sleep(0.05)
 
 def red(s,type=0):
