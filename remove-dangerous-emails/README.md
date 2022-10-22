@@ -15,6 +15,9 @@ This script __do not checks for and do not remove__ non-existent emails, cuz in 
 ## Setup
 - you need __python3__ installed, and some modules (script will try to install missing modules by itself, but it's better to help him):
 ```
+python3 -m ensurepip
+```
+```
 pip3 install psutil requests dnspython IP2Location
 ```
 - _Optionaly_ you can download `get_safe_mails.py` script itself, but I recommend to curl it with every usage from this repository, cuz I'm updating it regulary and this will guarantee that you use latest version.
