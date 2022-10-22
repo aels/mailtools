@@ -50,9 +50,9 @@ def show_banner():
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
-	"""
+	""".encode('utf-8')
 	for line in banner.splitlines():
-		print(line)
+		print(line.decode('utf-8'))
 		time.sleep(0.05)
 
 def red(s,type=0):
