@@ -8,10 +8,9 @@ Checks are performed by looking at:
 - reverse ptr of email host
 - title of host's website
 
-*From average corporate emails database there are usually __~50% of emails are hosted on AV-vendor servers__ and so considered dangerous.
+__*__ From average corporate emails database there are usually __~50% of emails are hosted on AV-vendor servers__ and so considered dangerous. Validol filters out __all known threats__ and 95% of unknown security companies hosted emails, ensuring that you mail campaign will not fire your ass down.
 
-Also emails like `staff@`, `admin@`, `support@` and so on are removed by default.
-Emails which are hosted on _edu_, _gov_ and _mil_ domains are also removed.
+Emails like `staff@`, `admin@`, `support@` and so on are removed by default. Emails which are hosted on `edu`, `gov` and `mil` domains are also removed.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
 ## Setup
 - you need __python3__ installed, and some modules (script will try to install missing modules by itself, but it's better to help him):
@@ -21,6 +20,12 @@ pip3 install psutil requests dnspython IP2Location
 - _Optionaly_ you can download `get_safe_mails.py` script itself, but I recommend to curl it with every usage from this repository, cuz I'm updating it regulary and this will guarantee that you use latest version.
 - All done, we can go.
 ## Usage
+```
+python3 <(curl -fskSL gg.gg/email-validator)
+```
+and validol will ask you for path to database you want to validate and desired email providers you want to leave in this list (if you want only "outlook" emails, for example).
+
+Or you can supply path to mail list as parameter:
 ```
 python3 <(curl -fskSL gg.gg/email-validator) /path/to/mail_list.txt
 ```
@@ -43,7 +48,7 @@ management@meltblue.com:kousukenagata
 ```
 are OK.
 ## Speed. It's fast.
-Script can check ~1,000,000 emails per hour. Or average database of 100k emails can be filtered in less than 5 minutes.
+Validol can check __~1,500,000 emails per hour__. Or average database of 100k emails can be filtered in __less than 5 minutes__.
 
 # validol.php - deprecated in favor of much faster get_safe_mails.py.
 <img width="909" alt="image" src="https://user-images.githubusercontent.com/1212294/177665014-4fd269f3-0911-41a6-aa3f-2da2c38d74fa.png">
