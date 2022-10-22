@@ -9,6 +9,6 @@ These tools are still a work-in-progress and should be mostly usable but may be 
 ## Legal Notices
 You are ONLY allowed to use the following code for educational purposes!
 
-This script shall not be used for any kind of illegal activity nor law enforcement at any time. This restriction applies to all cases of usage, no matter whether the code as a whole or only parts of it are being used.
+These scripts shall not be used for any kind of illegal activity nor law enforcement at any time. This restriction applies to all cases of usage, no matter whether the code as a whole or only parts of it are being used.
 
 By downloading and/or using any part of the code and/or any file of this repository, you agree to this restriction without remarks.
