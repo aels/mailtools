@@ -227,7 +227,7 @@ def worker_item(jobs_que, results_que):
 				results_que.put((False, line, str(e)))
 				bads += 1
 			progress += 1
-			time.sleep(0.04)
+			time.sleep(0.08)
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -261,7 +261,7 @@ def printer(jobs_que, results_que):
 			status_bar = (
 				f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
 				f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
-				f'[ speed: {bold(num(round(sum(speed)/10)))}lines/s ({bold(loop_time)}s/loop) ]'+
+				f'[ speed: {bold(num(round(sum(speed)/(len(speed) or 1))))}lines/s ({bold(loop_time)}s/loop) ]'+
 				f'[ cpu: {bold(cpu_usage)}% ]'+
 				f'[ mem: {bold(mem_usage)}% ]'+
 				f'[ net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
@@ -280,7 +280,7 @@ def printer(jobs_que, results_que):
 			if len(thread_statuses):
 				print(wl+'\n'.join(thread_statuses))
 			print(wl+status_bar+up)
-			time.sleep(0.04)
+			time.sleep(0.08)
 
 signal.signal(signal.SIGINT, quit)
 show_banner()
@@ -344,5 +344,5 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 				progress += 1
 		if threads_counter == 0 and no_jobs_left:
 			break
-		time.sleep(0.04)
+		time.sleep(0.08)
 	print('\r\n'+okk+green('well done. bye.'))
