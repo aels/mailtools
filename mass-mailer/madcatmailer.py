@@ -7,13 +7,17 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
 try:
-	import psutil, requests
-	from dns import resolver
+	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
 	os.system(sys.executable+' -m pip install psutil dnspython requests pyopenssl')
-	import psutil, requests
-	from dns import resolver
+	import psutil, requests, dns.resolver
+
+if sys.version_info[0] < 3:
+	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
+
+if sys.stdout.encoding is None:
+	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
 
 # needed for faster and stable dns resolutions
 custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
@@ -30,9 +34,6 @@ wrn = b+'[\033[33m!\033[37m] '+z
 inf = b+'[\033[34mi\033[37m] '+z
 npt = b+'[\033[37m?\033[37m] '+z
 
-if sys.version_info[0] < 3:
-	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
-
 def show_banner():
 	banner = f"""
 
@@ -44,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v22.10.10{z}
+          ╙     {b}MadCat Mailer v22.10.23{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -432,8 +433,9 @@ loop_times = []
 loop_time = 0
 got_updates = False
 window_width = os.get_terminal_size().columns-40
-resolver_obj = resolver.Resolver()
+resolver_obj = dns.resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
+resolver_obj.rotate = True
 
 show_banner()
 tune_network()
