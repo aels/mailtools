@@ -2,13 +2,17 @@
 
 import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, resource, base64
 try:
-	import psutil, requests
-	from dns import resolver
+	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
 	os.system(sys.executable+' -m pip install psutil requests dnspython pyopenssl')
-	import psutil, requests
-	from dns import resolver
+	import psutil, requests, dns.resolver
+
+if sys.version_info[0] < 3:
+	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
+
+if sys.stdout.encoding is None:
+	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
 
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
@@ -31,9 +35,6 @@ wrn = b+'[\033[33m!\033[37m] '+z
 inf = b+'[\033[34mi\033[37m] '+z
 npt = b+'[\033[37m?\033[37m] '+z
 
-if sys.version_info[0] < 3:
-	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
-
 def show_banner():
 	banner = f"""
 
@@ -45,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.10.16{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.10.23{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -457,7 +458,7 @@ speed = []
 progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
-resolver_obj = resolver.Resolver()
+resolver_obj = dns.resolver.Resolver()
 resolver_obj.nameservers = custom_dns_nameservers
 resolver_obj.rotate = True
 domain_configs_cache = {}
