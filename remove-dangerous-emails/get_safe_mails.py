@@ -8,6 +8,12 @@ except ImportError:
 	os.system(sys.executable+' -m pip install psutil requests dnspython IP2Location')
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 
+if sys.version_info[0] < 3:
+	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
+
+if sys.stdout.encoding is None:
+	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
+
 custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
@@ -32,9 +38,6 @@ wrn = b+'[\033[33m!\033[37m] '+z
 inf = b+'[\033[34mi\033[37m] '+z
 npt = b+'[\033[37m?\033[37m] '+z
 
-if sys.version_info[0] < 3:
-	raise Exception('\033[0;31mPython 3 is required. Try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
-
 def show_banner():
 	banner = f"""
 
@@ -46,11 +49,11 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v22.10.22{z}
+          ╙     {b}Validol - Email Validator v22.10.23{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
-	""".encode('utf-8', 'ignore').decode('utf-8')
+	"""
 	for line in banner.splitlines():
 		print(line)
 		time.sleep(0.05)
