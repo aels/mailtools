@@ -4,7 +4,7 @@ import threading, sys, time, re, os, signal, queue, resource, tempfile
 try:
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 except ImportError:
-	print('\033[1;33minstalling missing packages...\033[0m')
+	print('\033[0;33minstalling missing packages...\033[0m')
 	os.system(sys.executable+' -m pip install psutil requests dnspython IP2Location')
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 
@@ -16,11 +16,14 @@ if sys.stdout.encoding is None:
 
 custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
+domains_whitelist_url = 'https://cdn.jsdelivr.net/gh/aels/mailtools/remove-dangerous-emails/domains_whitelist.txt'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
-dangerous_users = r'customer|scanner|apps|service|info|sales|admin|director|^hr$|finance|contact|support|security|mail|manager|abuse|job|billing|home|account|report|office|about|help|webmaster|confirm|reply|tech|marketing|feedback|newsletter|orders|verification|calendar|regist|survey|excel|submission|contracts|invite|hello|staff|community|fax|twitter|postmaster|found|catch|test'
+domains_whitelist_path = tempfile.gettempdir()+'/domains_whitelist.txt'
+whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
+dangerous_users = r'^hr$|about|abuse|account|admin|apps|billing|calendar|catch|community|confirm|contact|contracts|customer|director|excel|fax|feedback|finance|found|hello|help|home|info|invite|job|mail|manager|marketing|newsletter|office|orders|postmaster|regist|reply|report|sales|scanner|security|service|staff|submission|support|survey|tech|test|twitter|verification|webmaster'
 dangerous_zones = r'(\.us|\.gov|\.mil|\.edu)$'
-dangerous_isps  = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva'
-dangerous_isps2 = r'virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
+dangerous_isps  = r'acronis|avanan|barracuda|barracuda|broadcom|censornet|checkpoint|cisco|clearswift|cloudflare|cyren|duocircle|essentials|fireeye|forcepoint|fortinet|gartner|guard|helpsystems|indevis|invalid|ironscales|jellyfish|libraesva|localhost|mailchannels|mailinator|mdaemon|mimecast|mimecast|mx37\.m..p\.com|mxcomet|mxstorm|n-able|opswat|perimeterwatch|plesk|proofpoint|proxmox|retarus|securence|security|shield|sonicwall|sophos|spamtitan|spiceworks|techtarget|trellix|trendmicro|trustifi|trustwave|uni-muenster|zyxel'
+dangerous_isps2 = r'abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|list|metunet|rbl|research|security|spam|trap|ubl|virtual|virus|vm\d'
 dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
 
 resolver_obj = dns.resolver.Resolver()
@@ -49,7 +52,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v22.10.23{z}
+          ╙     {b}Validol - Email Validator v22.10.25{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -93,7 +96,7 @@ def debug(msg):
 def tune_network():
 	try:
 		resource.setrlimit(8, (2**14, 2**14))
-		print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
+		print(okk+'tuning rlimit_nofile:          '+', '.join([num(i) for i in resource.getrlimit(8)]))
 	except Exception as e:
 		print(wrn+'failed to set rlimit_nofile:   '+orange(e))
 
@@ -106,13 +109,34 @@ def check_database_exists():
 			open(ip2location_path, 'wb').write(ip2location_body)
 		except Exception as e:
 			exit(wl+err+'cannot download ip2location.bin: '+red(e))
-	print(wl+okk+'ip2location.bin path:          '+bold(ip2location_path))
+	print(wl+okk+'ip2location.bin path:          '+ip2location_path)
+
+def check_whitelist_exists():
+	global domains_whitelist_url, domains_whitelist_path
+	if not os.path.isfile(domains_whitelist_path):
+		print(inf+f'downloading {b}domains whitelist{z} file. it will take some time...'+up)
+		try:
+			domains_whitelist_body = requests.get(domains_whitelist_url, timeout=5).text
+			open(domains_whitelist_path, 'w').write(domains_whitelist_body)
+		except Exception as e:
+			exit(wl+err+'cannot download domains_whitelist.txt: '+red(e))
+	print(wl+okk+'domains_whitelist.txt path:    '+domains_whitelist_path)
+
+def fill_domains_whitelist(domains_whitelist_path):
+	goods_cache = {}
+	if os.path.isfile(domains_whitelist_path):
+		for domain in open(domains_whitelist_path, 'r', encoding='utf-8', errors='ignore').read().splitlines():
+			goods_cache[domain] = 'precheck whitelist'
+	return goods_cache
 
 def first(a):
 	return (a or [''])[0]
 
 def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
+
+def sec_to_min(i):
+	return '%02d:%02d'%(int(i/60), i%60)
 
 def get_url_body(host):
 	try:
@@ -165,9 +189,13 @@ def judge_email(email):
 	email_mx = get_mx_server(host)
 	if not email_mx:
 		raise Exception('no <mx> records found for: '+host)
-	for domain in selected_email_providers.split(','):
-		if domain and domain in email_mx:
-			return email_mx
+	if selected_email_providers:
+		for domain in selected_email_providers.split(','):
+			if domain and domain in email_mx:
+				return email_mx
+		raise Exception(email_mx)
+	if re.search(whitelisted_mx, email_mx):
+		return email_mx
 	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_mx):
 		raise Exception(email_mx)
 	email_mx_ip = get_ip_of_host(email_mx)
@@ -258,15 +286,12 @@ def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, bads
 	with open(safe_filename, 'a') as safe_file_handle, open(dangerous_filename, 'a') as dangerous_file_handle:
 		while True:
+			clock = sec_to_min(time.time()-time_start).replace(':', (' ', z+':'+b)[int(time.time()*2)%2])
 			status_bar = (
 				f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
-				f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
-				f'[ speed: {bold(num(round(sum(speed)/(len(speed) or 1))))}lines/s ({bold(loop_time)}s/loop) ]'+
-				f'[ cpu: {bold(cpu_usage)}% ]'+
-				f'[ mem: {bold(mem_usage)}% ]'+
-				f'[ net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
-				f'[ threads: {bold(threads_counter)} ]'+
-				f'[ goods/bads: {green(num(goods),1)}/{red(num(bads),1)} ]'
+				f'[ {bold(clock)} \xb7 progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) \xb7 speed: {bold(num(round(sum(speed)/10)))}lines/s ({bold(loop_time)}s/loop) ]'+
+				f'[ cpu: {bold(cpu_usage)}% \xb7 mem: {bold(mem_usage)}% \xb7 net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
+				f'[ threads: {bold(threads_counter)} \xb7 goods/bads: {green(num(goods),1)}/{red(num(bads),1)} ]'
 			)
 			thread_statuses = []
 			while not results_que.empty():
@@ -275,7 +300,7 @@ def printer(jobs_que, results_que):
 					thread_statuses.append(' '+line+': '+green(msg))
 					safe_file_handle.write(line+'\n')
 				else:
-					thread_statuses.append(' '+line+': '+red(msg,2))
+					thread_statuses.append(' '+line+': '+red(msg))
 					dangerous_file_handle.write(line+': '+msg+'\n')
 			if len(thread_statuses):
 				print(wl+'\n'.join(thread_statuses))
@@ -286,8 +311,9 @@ signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
 check_database_exists()
+check_whitelist_exists()
 try:
-	help_message = f'usage: \n{npt}python3 {sys.argv[0]} '+bold('list_with_emails.txt')+' [selected,email,providers]'
+	help_message = f'usage:\n    python3 {sys.argv[0]} '+bold('list_with_emails.txt')+' [selected,email,providers]'
 	list_filename = sys.argv[1] if len(sys.argv)>1 and os.path.isfile(sys.argv[1]) else ''
 	selected_email_providers = sys.argv[2] if len(sys.argv)>2 and sys.argv[2]!='debug' else ''
 	debugging = 'debug' in sys.argv
@@ -303,10 +329,11 @@ except:
 
 jobs_que = queue.Queue()
 results_que = queue.Queue()
+time_start = time.time()
 bads = 0
 goods = 0
 progress = 0
-goods_cache = {}
+goods_cache = fill_domains_whitelist(domains_whitelist_path)
 bads_cache = {}
 mem_usage = 0
 cpu_usage = 0
@@ -321,12 +348,12 @@ speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
 
-print(inf+'source file:                   '+bold(list_filename))
-print(inf+'total lines to procceed:       '+bold(num(total_lines)))
-print(inf+'desired email providers:       '+bold(selected_email_providers or 'all'))
-print(inf+'safe emails file:              '+bold(safe_filename))
-print(inf+'dangerous emails file:         '+bold(dangerous_filename))
-input(npt+'press '+bold('[ Enter ]')+' to start...')
+print(inf+'source file:                   '+list_filename)
+print(inf+'total lines to procceed:       '+num(total_lines))
+print(inf+'desired email providers:       '+(selected_email_providers or 'all'))
+print(inf+'safe emails file:              '+safe_filename)
+print(inf+'dangerous emails file:         '+dangerous_filename)
+input(npt+'press [ Enter ] to start...')
 
 threading.Thread(target=every_second, daemon=True).start()
 threading.Thread(target=printer, args=(jobs_que, results_que), daemon=True).start()
