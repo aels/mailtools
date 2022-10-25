@@ -1,16 +1,17 @@
 # validol - mail validation script (get_safe_mails.py).
 ![image](https://user-images.githubusercontent.com/1212294/197357350-69b0d660-a2e0-44e2-9a91-61ea89650de1.png)
 
-It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as __perimeterwatch__, __proofpoint__, __fireeye__ and so on (total ~50 vendors).
+It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as __perimeterwatch__, __proofpoint__, __fireeye__ etc. (total 50+ vendors).
 Checks are performed by looking at:
+- whitelist made of 1,000,000 already scanned top domains
 - mx records of email domain
-- subnet name of server of mx records
-- reverse ptr of email host
+- subnet name of a server mx records points to
+- reverse-ptr of email host mx records
 - title of host's website
 
 __*__ From average corporate emails database there are usually __~50% of emails are hosted on AV-vendor servers__ and so considered dangerous. Validol filters out __all known threats__ and 95% of unknown security companies hosted emails, ensuring that you mail campaign will not fire your ass down.
 
-Emails like `staff@`, `admin@`, `support@` and so on are removed by default. Emails which are hosted on `edu`, `gov` and `mil` domains are also removed.
+Emails like `staff@`, `admin@`, `support@` or hosted on `edu`, `gov` and `mil` domains are removed by default.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
 ## Setup
 - you need __python3__ installed, and some modules (script will try to install missing modules by itself, but it's better to help him):
@@ -37,17 +38,10 @@ __mail\_list.txt__ file itself can by any format with any data. Only requirement
 so basically strings like
 ```
 April,Rdson,Data Entry Specialist- Sustainabilty,arichardson@hobokenumc.com,2014181000
-Abby,Minnick,General Laborer,abby_minnick@hamiltoncityschools.com,5138875000
-Angel,Pellot,Director - Sourcing and Vendor Management,angel.pellot@wellcare.com,8132906200
-Ann,Hatchell,Copywriter,ann.hatchell@gadoe.org,4046562800
-Ana,Diaz,"Producer, Good Morning America",adiaz@justdesserts.com,5105672900
 ```
 or
 ```
 mail@ofukuwake.net:kouhei0729
-osnet@osnet.net:special
-goctavo@arrangerconsulting.it:arranger1
-management@meltblue.com:kousukenagata
 ```
 are OK.
 ## Speed. It's fast.
