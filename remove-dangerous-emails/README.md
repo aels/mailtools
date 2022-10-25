@@ -1,4 +1,4 @@
-# validol - mail validation script (get_safe_mails.py).
+# validol - mail validation script (get_safe_mails.py)
 ![image](https://user-images.githubusercontent.com/1212294/197357350-69b0d660-a2e0-44e2-9a91-61ea89650de1.png)
 
 It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as __perimeterwatch__, __proofpoint__, __fireeye__ etc. (total 50+ vendors).
@@ -9,9 +9,9 @@ Checks are performed by looking at:
 - reverse-ptr of email host mx records
 - title of host's website
 
-__*__ From average corporate emails database there are usually __~50% of emails are hosted on AV-vendor servers__ and so considered dangerous. Validol filters out __all known threats__ and 95% of unknown security companies hosted emails, ensuring that you mail campaign will not fire your ass down.
+__*__ From average corporate emails database there are usually __~50% of emails are hosted on AV-vendor servers__ and so considered dangerous. Validol filters out __all known threats__ and most of unknown security companies hosted emails, ensuring that you mail campaign will not fire your ass.
 
-Emails like `staff@`, `admin@`, `support@` or hosted on `edu`, `gov` and `mil` domains are removed by default.
+Emails like `staff@`, `admin@`, `support@` or hosted on `.edu`, `.gov` and `.mil` domains are removed by default.
 This script __do not checks for and do not remove__ non-existent emails, cuz in my opinion it's not that dangerous to send email to nowhere. Also all big email providers effectively supress ability to check mailbox existance by returning "exist" responces after few checks.
 ## Setup
 - you need __python3__ installed, and some modules (script will try to install missing modules by itself, but it's better to help him):
@@ -46,6 +46,8 @@ mail@ofukuwake.net:kouhei0729
 are OK.
 ## Speed. It's fast.
 Validol can check __~1,500,000 emails per hour__. Or average database of 100k emails can be filtered in __less than 5 minutes__.
+
+
 
 # validol.php - deprecated in favor of much faster get_safe_mails.py.
 <img width="909" alt="image" src="https://user-images.githubusercontent.com/1212294/177665014-4fd269f3-0911-41a6-aa3f-2da2c38d74fa.png">
