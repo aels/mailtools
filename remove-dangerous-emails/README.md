@@ -1,4 +1,4 @@
-# validol - mail validation script (get_safe_mails.py)
+# Validol - mail validation script (get_safe_mails.py)
 ![image](https://user-images.githubusercontent.com/1212294/197357350-69b0d660-a2e0-44e2-9a91-61ea89650de1.png)
 
 It's intented to remove from your mail list all emails which are hosted or are managed by security-related companies, such as __perimeterwatch__, __proofpoint__, __fireeye__ etc. (total 50+ vendors).
@@ -46,6 +46,7 @@ mail@ofukuwake.net:kouhei0729
 are OK.
 ## Speed. It's fast.
 Validol can check __~1,500,000 emails per hour__. Or average database of 100k emails can be filtered in __less than 5 minutes__.
+
 
 
 
