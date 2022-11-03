@@ -220,7 +220,7 @@ def find_email_password_collumnes(list_filename):
 				email_collumn = line.split(email[0])[0].count(':')
 				password_collumn = email_collumn+1
 				if re.search(r'@[\w.-]+\.[a-z]{2,}:.+123', line):
-					password_collumn = [i for i, col in enumerate(line.split(':')) if re.search(r'[^@]+123', col)][0]
+					password_collumn = [i for i, col in enumerate(line.split(':')) if re.match(r'[^@]+123', col)][0]
 					break
 	if email_collumn is not False:
 		return (email_collumn, password_collumn)
