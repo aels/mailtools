@@ -410,9 +410,7 @@ def printer(jobs_que, results_que):
 		while not results_que.empty():
 			thread_statuses.append(' '+results_que.get())
 			progress += 1 if 'getting' in thread_statuses[-1] else 0
-		if len(thread_statuses):
-			print(wl+'\n'.join(thread_statuses))
-		print(wl+status_bar+up)
+		print(wl+'\n'.join(thread_statuses+[status_bar+up]))
 		time.sleep(0.04)
 
 signal.signal(signal.SIGINT, quit)
