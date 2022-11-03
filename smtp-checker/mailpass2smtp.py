@@ -308,8 +308,8 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 		smtp_login = smtp_user
 	s = socket_get_free_smtp_server(smtp_server, port)
 	answer = socket_send_and_read(s)
-	if answer[:3] == '220' or answer[:3] == '250':
-		s = socket_try_tls(s, smtp_server)
+	if answer[:3] == '220':
+		s = socket_try_tls(s, smtp_server) if port not '465' else s
 		s = socket_try_login(s, smtp_server, smtp_login, password)
 		if not verify_email:
 			s.close()
