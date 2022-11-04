@@ -127,7 +127,7 @@ def base64_encode(string):
 	return base64.b64encode(str(string).encode('ascii')).decode('ascii')
 
 def normalize_delimiters(s):
-	return re.sub(r'[;,\t| \']', ':', re.sub(r'"+', '', s))
+	return re.sub(r'[;,\t| ]', ':', re.sub(r'[\'"]+', '', s))
 
 def is_listening(ip, port):
 	try:
