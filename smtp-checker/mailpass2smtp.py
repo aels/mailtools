@@ -233,7 +233,7 @@ def is_ignored_host(mail):
 	global exclude_mail_hosts
 	return len([ignored_str for ignored_str in exclude_mail_hosts.split(',') if ignored_str in mail.split('@')[-1]])>0
 
-def socket_send_and_read(sock, cmd=False):
+def socket_send_and_read(sock, cmd=''):
 	if cmd:
 		debug('>>> '+cmd)
 		sock.send((cmd.strip()+'\r\n').encode('ascii'))
@@ -336,7 +336,7 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 	raise Exception(answer)
 
 def worker_item(jobs_que, results_que):
-	global min_threads, threads_counter, verify_email, goods, no_jobs_left, loop_times, default_login_template
+	global min_threads, threads_counter, verify_email, goods, smtp_filename, no_jobs_left, loop_times, default_login_template
 	while True:
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads:
 			break
@@ -359,13 +359,13 @@ def worker_item(jobs_que, results_que):
 						smtp_server, port = random.choice(smtp_server_port_arr).split(':')
 					else:
 						raise Exception('still no connection details for '+smtp_user)
-				results_que.put(blue('connecting to',0)+f' {smtp_server}|{port}|{smtp_user}|{password}')
+				results_que.put(blue('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
 				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
-				results_que.put(green(smtp_user+':'+password,7)+(verify_email and green(' sent\a to '+verify_email,7)))
+				results_que.put(green(smtp_user+':\a'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
 				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
 				goods += 1
 			except Exception as e:
-				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+', '.join(str(e).splitlines()).strip()[0:130],0))
+				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+', '.join(str(e).splitlines()).strip()))
 			time.sleep(0.04) # unlock other threads a bit
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
@@ -505,4 +505,4 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 		if threads_counter == 0 and no_jobs_left:
 			break
 		time.sleep(0.04)
-	print('\r\n'+okk+green('well done. bye.',1))
+print('\r\n'+okk+green('well done. bye.',1))
