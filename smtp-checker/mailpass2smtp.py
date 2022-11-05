@@ -295,9 +295,9 @@ def socket_try_mail(sock, smtp_from, smtp_to, data):
 				answer = socket_send_and_read(sock, data)
 				if answer[:3] == '250':
 					socket_send_and_read(sock, 'QUIT')
-					s.close()
+					sock.close()
 					return True
-	s.close()
+	sock.close()
 	raise Exception(answer)
 
 def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password):
@@ -336,7 +336,7 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 	raise Exception(answer)
 
 def worker_item(jobs_que, results_que):
-	global min_threads, threads_counter, verify_email, goods, smtp_filename, no_jobs_left, loop_times, default_login_template
+	global min_threads, threads_counter, verify_email, goods, smtp_filename, no_jobs_left, loop_times, default_login_template, mem_usage, cpu_usage
 	while True:
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads:
 			break
