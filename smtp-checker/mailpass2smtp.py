@@ -437,7 +437,7 @@ try:
 		while not re.match(r'\d+$', start_from_line) and start_from_line != '':
 			start_from_line = input(npt+'start from line (leave empty to start from 0): ')
 		start_from_line = int('0'+start_from_line)
-	smtp_filename = re.sub(r'\.[^.]+$', '_smtp.'+list_filename.split('.')[-1], list_filename)
+	smtp_filename = re.sub(r'\.([^.]+)$', r'_smtp.\1', list_filename)
 	verify_email = verify_email or ''
 except:
 	print(err+help_message)
