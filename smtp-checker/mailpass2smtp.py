@@ -127,7 +127,7 @@ def base64_encode(string):
 	return base64.b64encode(str(string).encode('ascii')).decode('ascii')
 
 def normalize_delimiters(s):
-	return re.sub(r'[;,\t| ]', ':', re.sub(r'[\'"]+', '', s))
+	return re.sub(r'[;,\t|]', ':', re.sub(r'[\'" ]+', '', s))
 
 def is_listening(ip, port):
 	try:
@@ -227,7 +227,7 @@ def find_email_password_collumnes(list_filename):
 	raise Exception('the file you provided does not contain emails')
 
 def wc_count(filename):
-	return int(os.popen('wc -l '+filename).read().strip().split(' ')[0])
+	return int(os.popen('wc -l "'+filename+'"').read().strip().split(' ')[0])
 
 def is_ignored_host(mail):
 	global exclude_mail_hosts
@@ -497,7 +497,7 @@ with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
 			else:
 				line = normalize_delimiters(line.strip())
 				fields = line.split(':')
-				if len(fields)>1 and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>5:
+				if len(fields)>password_collumn and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>5:
 					jobs_que.put((False, False, fields[email_collumn], fields[password_collumn]))
 				else:
 					ignored += 1
