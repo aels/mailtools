@@ -5,9 +5,9 @@ SMTP checker, that takes list, containing emails & passwords, in any order and i
 ## Features
 - __don't require proxy lists__, at all
 - takes as input literaly anything - __csv lists, sql dumps, json exports, text with any garbage__ inside. Accepting files up to 100Gb in size, still keeping memory footprint low.
-- detects and skips __60+ topmost known honeypots__ and __80+% of unknown honeypots__, keeping you away from abuse reports.
+- raw sockets implementation. __It is 80% faster than other smtplib-based scripts__ cuz of multiple auth and ssl handshake optimisations.
 - skips emails, hosted by all known security vendors (like __proofpoint, perimeterwatch, securence, techtarget, cisco__ etc.), to keep you away from abuses.
-- __prefering ipv6__ over ipv4 to evade spam-house ip blocking.
+- __prefering ipv6__ over ipv4 to evade SpamHouse ip blocking.
 - trying __qa-__ nodes first, where bruteforse protection is often disabled.
 - trying to connect to __different geo-separated host nodes__ of mail servers in balancer pool, if any.
 - custom DNS resolver, to connect to __different ip every time__. To evade bruteforse protection.
@@ -16,8 +16,8 @@ SMTP checker, that takes list, containing emails & passwords, in any order and i
 - automaticaly __adjusts ulimit__ values, to keep you runnig as fast as possible.
 - automatical threads count balancing.
 - can email you with valid credentials, if you provide an email, for further inbox sorting.
-- can probe around __~150 credential pairs per second__ (~300-500 in "rage" mode)
-- you can resume scan from any line you want
+- can probe around __~150 credential pairs per second__ (~300-500 in "rage" mode).
+- you can resume scan from any line you want.
 
 ## Setup
 All you need is __python3__ and __psutil & dnspython__ modules installed (script will try to install missing modules by itself, anyway).
@@ -39,13 +39,14 @@ where:
 - __start_from_line__ is just a line number to start from, if any (optional).
 - __rage__ is a keyword, by adding which you will increase threads number from 300 to 600, which in case of small server will cause instabilities (optional).
 
-\*good credential pairs will be saved to __original_file_name__\_smtp.txt.
+\*good credential pairs will be saved to __original_file_name_smtp.txt__.
 
 Or just:
 ```
 python3 <(curl -slkSL is.gd/madcatsmtp)
 ```
 and you will be prompted for missing parameters.
+
 ## Legal Notices
 You are ONLY allowed to use the following code for educational purposes!
 
