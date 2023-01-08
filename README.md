@@ -8,7 +8,7 @@
 - [ ] [MadCat mailer](https://github.com/aels/mailtools/tree/main/mass-mailer). Just another multithreaded smtplib-based mailer. Worth giving it a try.
 - [ ] InboxStat - gives you statistics about list of inboxes by emails and urls. Also accepts search query, if you are looking for something specific. In development.
 - [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
-- [ ] SeeMass - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
+- [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
 ### Don't be rude
 I'm writing all these tools as part of my workflow, and giving them for free not cuz they are free, but cuz they works and do their job very very well.
 Please, respect my efforts and my time. Thank you.
