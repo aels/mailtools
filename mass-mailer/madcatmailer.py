@@ -461,7 +461,7 @@ while True:
 		skipped += 1 if '-\b' in thread_status else 0
 		if config['debug']:
 			error_log += [thread_status] if '{!}' in thread_status or '[X]' in thread_status or '-\b' in thread_status else []
-			len(error_log)>200 and error_log.pop(0)
+			# len(error_log)>200 and error_log.pop(0)
 		mails_per_second = round(mails_sent/time_takes, 1)
 		threads_statuses[thread_name] = f'{thread_name}: '.rjust(7)+str_ljust(thread_status, window_width)+f'{mails_sent} sent ({mails_per_second} mail/s)'.rjust(23)
 		got_updates = True
