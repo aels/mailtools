@@ -9,7 +9,7 @@
 - [ ] InboxStat - gives you statistics about list of inboxes by emails and urls. Also accepts search query, if you are looking for something specific. In development.
 - [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
 - [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
-##### \{!\}Windows users warning
+##### \{!\} Windows users warning
 All of these tools are supposed to be __running on Linux or MacOS__. So, if you are Windows user, I recommend to use WSL (it's in fact Ubuntu core right inside your Windows installation).
 Here is instruction, how to enable it on your machine: [https://devblogs.microsoft.com/commandline/install-wsl-with-a-single-command-now-available-in-windows-10-version-2004-and-higher/](https://devblogs.microsoft.com/commandline/install-wsl-with-a-single-command-now-available-in-windows-10-version-2004-and-higher/)
 
