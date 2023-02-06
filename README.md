@@ -15,6 +15,9 @@ Most likely there you will find help and new business partners. [Welcome aboard!
 
 __\{!\} Windows users warning:__ All of these tools are supposed to be __running on Linux or MacOS__. So, if you are Windows user, I recommend you to use WSL (it's in fact Ubuntu core right inside your Windows installation).
 Here is instruction, how to enable it on your machine: [https://devblogs.microsoft.com/commandline/install-wsl-with-a-single-command-now-available-in-windows-10-version-2004-and-higher/](https://devblogs.microsoft.com/commandline/install-wsl-with-a-single-command-now-available-in-windows-10-version-2004-and-higher/)
+# Educational materials
+- [Getting rid of Google Safebrowsing red screen once and forever](https://telegra.ph/Getting-rid-of-Google-Safebrowsing-red-screen-once-and-forever-02-03)
+- [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-02-03)
 
 ### Don't be rude
 I'm writing all these tools as part of my workflow, and giving them for free not cuz they are free, but cuz they works and do their job very very well.
