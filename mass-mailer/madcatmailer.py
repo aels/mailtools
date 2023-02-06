@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, resource
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, resource, base64
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -10,7 +10,7 @@ try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(sys.executable+' -m pip install psutil dnspython requests pyopenssl')
+	os.system(sys.executable+' -m pip3 install psutil dnspython requests pyopenssl')
 	import psutil, requests, dns.resolver
 
 if sys.version_info[0] < 3:
@@ -122,6 +122,9 @@ def read_lines(path):
 def is_file_or_url(path):
 	return os.path.isfile(path) or re.search(r'^https?://', path)
 
+def base64_encode(string):
+	return base64.b64encode(str(string).encode('ascii')).decode('ascii')
+
 def get_rand_ip_of_host(host):
 	global resolver_obj
 	try:
@@ -150,9 +153,10 @@ def extract_email(line):
 def expand_macros(text, subs):
 	mail_str, smtp_user, mail_redirect_url = subs
 	mail_to = extract_email(mail_str)
-	placeholders = 'email|email_user|email_host|email_l2_domain|smtp_user|smtp_host|url|random_name'.split('|')
+	placeholders = 'email|email_b64|email_user|email_host|email_l2_domain|smtp_user|smtp_host|url|random_name'.split('|')
 	replacements = [
 		mail_to,
+		base64_encode(mail_to),
 		mail_to.split('@')[0].capitalize(),
 		mail_to.split('@')[-1],
 		mail_to.split('@')[-1].split('.')[0],
