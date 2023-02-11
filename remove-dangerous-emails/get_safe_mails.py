@@ -27,8 +27,8 @@ dangerous_isps2 = r'abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|li
 dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
 
 resolver_obj = dns.resolver.Resolver()
-resolver_obj.nameservers = custom_dns_nameservers
-resolver_obj.rotate = True
+# resolver_obj.nameservers = custom_dns_nameservers
+# resolver_obj.rotate = True
 requests.packages.urllib3.disable_warnings()
 
 b   = '\033[1m'
@@ -297,7 +297,7 @@ def printer(jobs_que, results_que):
 			while not results_que.empty():
 				is_ok, line, msg = results_que.get()
 				if is_ok:
-					thread_statuses.append(' '+line+': '+green(msg))
+					# thread_statuses.append(' '+line+': '+green(msg))
 					safe_file_handle.write(line+'\n')
 				else:
 					thread_statuses.append(' '+line+': '+red(msg))
