@@ -16,7 +16,7 @@ except ImportError:
 if sys.version_info[0] < 3:
 	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-if sys.stdout.encoding is None:
+if sys.stdout.encoding is None or sys.stdout.encoding is 'latin-1':
 	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
 
 # needed for faster and stable dns resolutions
