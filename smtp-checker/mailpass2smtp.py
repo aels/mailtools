@@ -11,9 +11,6 @@ except ImportError:
 if sys.version_info[0] < 3:
 	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-if sys.stdout.encoding != 'utf-8':
-	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
-
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
 # needed for faster and stable dns resolutions
@@ -464,9 +461,8 @@ progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = dns.resolver.Resolver()
-resolver_obj.nameservers = custom_dns_nameservers
-resolver_obj.rotate = True
 domain_configs_cache = {}
+sys.stdout.reconfigure(encoding='utf-8')
 
 print(inf+'loading SMTP configs...'+up)
 load_smtp_configs()
