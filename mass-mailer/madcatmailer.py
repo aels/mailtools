@@ -16,11 +16,6 @@ except ImportError:
 if sys.version_info[0] < 3:
 	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-if sys.stdout.encoding != 'utf-8':
-	exit('\033[0;31mplease set python env PYTHONIOENCODING=UTF-8, example: \033[1mexport PYTHONIOENCODING=UTF-8\033[0m')
-
-# needed for faster and stable dns resolutions
-custom_dns_nameservers = ['8.8.8.8', '8.8.4.4', '9.9.9.9', '149.112.112.112', '1.1.1.1', '1.0.0.1', '76.76.19.19', '2001:4860:4860::8888', '2001:4860:4860::8844']
 # dangerous mx domains, skipping them all
 dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
 
@@ -45,7 +40,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v22.10.23{z}
+          ╙     {b}MadCat Mailer v23.02.10{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -54,25 +49,25 @@ def show_banner():
 		print(line)
 		time.sleep(0.05)
 
-def red(s,type):
+def red(s,type=0):
 	return f'\033[{str(type)};31m'+str(s)+z
 
-def green(s,type):
+def green(s,type=0):
 	return f'\033[{str(type)};32m'+str(s)+z
 
-def orange(s,type):
+def orange(s,type=0):
 	return f'\033[{str(type)};33m'+str(s)+z
 
-def blue(s,type):
+def blue(s,type=0):
 	return f'\033[{str(type)};34m'+str(s)+z
 
-def violet(s,type):
+def violet(s,type=0):
 	return f'\033[{str(type)};35m'+str(s)+z
 
-def cyan(s,type):
+def cyan(s,type=0):
 	return f'\033[{str(type)};36m'+str(s)+z
 
-def white(s,type):
+def white(s,type=0):
 	return f'\033[{str(type)};37m'+str(s)+z
 
 def bold(s):
@@ -100,6 +95,25 @@ def quit(signum, frame):
 		print(inf+'last 200 errors:')
 		print('\n'.join(error_log))
 	sys.exit(0)
+
+def check_ipv4():
+	try:
+		socket.has_ipv4 = requests.get('https://api.ipify.org', timeout=3).text
+		socket.ipv4_blacklist = requests.get('https://addon.dnslytics.net/ipv4info/v1/'+socket.has_ipv4, timeout=3).text
+		socket.ipv4_blacklist = re.findall(r'"name":"([^"]+)","listed":true', socket.ipv4_blacklist)
+		if socket.ipv4_blacklist:
+			socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist))
+		else:
+			socket.ipv4_blacklist = False
+	except:
+		socket.has_ipv4 = False
+		socket.ipv4_blacklist = False
+
+def check_ipv6():
+	try:
+		socket.has_ipv6 = requests.get('https://api6.ipify.org', timeout=3).text
+	except:
+		socket.has_ipv6 = False
 
 def first(a):
 	return (a or [''])[0]
@@ -265,7 +279,7 @@ def worker_item(mail_que, results_que):
 						mail_to = extract_email(mail_str)
 						is_dangerous = is_dangerous_email(mail_to)
 						if not mail_to or is_dangerous:
-							msg = current_server+red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+(mail_to and 'skipping' or 'no')+' email - '+(mail_to and mail_to+' ('+is_dangerous+')' or mail_str)
+							msg = current_server+red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+(mail_to and 'skipping' or 'no')+' email - '+(mail_to and mail_to+' ('+red(is_dangerous)+')' or mail_str)
 							results_que.put((self.name, msg, mails_sent))
 							mail_str = False
 							time.sleep(0.5)
@@ -438,14 +452,18 @@ loop_time = 0
 got_updates = False
 window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
-resolver_obj.nameservers = custom_dns_nameservers
-resolver_obj.rotate = True
+requests.packages.urllib3.disable_warnings()
+sys.stdout.reconfigure(encoding='utf-8')
 
 show_banner()
 tune_network()
+check_ipv4()
+check_ipv6()
 load_config()
 fill_mail_queue(config['mails_list_file'], verify_every, config['mails_to_verify'])
 
+print(inf+'ipv4 address:                  '+bold(socket.has_ipv4 or '-')+' ('+(socket.ipv4_blacklist or green('clean'))+')')
+print(inf+'ipv6 address:                  '+bold(socket.has_ipv6 or '-'))
 print(okk+'loading config:                '+bold(config['config_file']))
 print(inf+'smtp servers loaded:           '+bold(num(len(smtp_pool_array))))
 print(inf+'total lines to procceed:       '+bold(num(total_mails_to_sent)))
