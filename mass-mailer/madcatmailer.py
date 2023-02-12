@@ -21,6 +21,7 @@ dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxsto
 mailing_services = r'amazon|elastic|sendinblue|twilio|sendgrid|mailgun|netcore|pepipost|mailjet|mailchimp|mandrill|salesforce|constant|postmark|sharpspring|zepto|litmus|sparkpost|smtp2go|socketlabs|aritic|kingmailer|netcore|flowmailer|jangosmtp'
 glock_json_response_url = 'https://spamtest.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
 glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
+dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -368,7 +369,7 @@ def load_config():
 		config['config_file'] = max([i for i in os.listdir() if re.search(r'.+\.config$', i)] or [''], key=os.path.getctime)
 	if not config['config_file']:
 		print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
-		print(inf+'you can download sample '+bold('.config')+' file from https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config')
+		print(inf+'you can download sample '+bold('.config')+' file from '+dummy_config_path)
 	while not is_file_or_url(config['config_file']):
 		config['config_file'] = input(npt+'enter desired config filename or it\'s url: ')
 	temp_config.read(config['config_file'])
