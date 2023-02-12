@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, resource, base64
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, resource, base64, string, secrets
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -18,6 +18,9 @@ if sys.version_info[0] < 3:
 
 # dangerous mx domains, skipping them all
 dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
+mailing_services = r'amazon|elastic|sendinblue|twilio|sendgrid|mailgun|netcore|pepipost|mailjet|mailchimp|mandrill|salesforce|constant|postmark|sharpspring|zepto|litmus|sparkpost|smtp2go|socketlabs|aritic|kingmailer|netcore|flowmailer|jangosmtp'
+glock_json_response_url = 'https://spamtest.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
+glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -97,21 +100,18 @@ def quit(signum, frame):
 	sys.exit(0)
 
 def check_ipv4():
+	print(inf+'checking ipv4 address in blacklists...'+up)
 	try:
-		socket.has_ipv4 = requests.get('https://api.ipify.org', timeout=3).text
-		socket.ipv4_blacklist = requests.get('https://addon.dnslytics.net/ipv4info/v1/'+socket.has_ipv4, timeout=3).text
-		socket.ipv4_blacklist = re.findall(r'"name":"([^"]+)","listed":true', socket.ipv4_blacklist)
-		if socket.ipv4_blacklist:
-			socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist))
-		else:
-			socket.ipv4_blacklist = False
+		socket.has_ipv4 = read('https://api.ipify.org')
+		socket.ipv4_blacklist = re.findall(r'"name":"([^"]+)","listed":true', read('https://addon.dnslytics.net/ipv4info/v1/'+socket.has_ipv4))
+		socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist)) if socket.ipv4_blacklist else False
 	except:
 		socket.has_ipv4 = False
 		socket.ipv4_blacklist = False
 
 def check_ipv6():
 	try:
-		socket.has_ipv6 = requests.get('https://api6.ipify.org', timeout=3).text
+		socket.has_ipv6 = read('https://api6.ipify.org')
 	except:
 		socket.has_ipv6 = False
 
@@ -223,7 +223,7 @@ def smtp_connect(smtp_server, port, user, password):
 	server_obj.login(user, password)
 	return server_obj
 
-def smtp_sendmail(server_obj, smtp_user, mail_str):
+def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	global config
 	mail_redirect_url = random.choice(config['redirects_list'])
 	subs = [mail_str, smtp_user, mail_redirect_url]
@@ -231,6 +231,7 @@ def smtp_sendmail(server_obj, smtp_user, mail_str):
 	mail_from = expand_macros(config['mail_from'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
+	smtp_from = extract_email(mail_from) if re.match(mailing_services, smtp_server) else smtp_user
 	message = MIMEMultipart()
 	message['To'] = mail_to
 	message['From'] = mail_from
@@ -252,7 +253,43 @@ def smtp_sendmail(server_obj, smtp_user, mail_str):
 	headers+= 'Received: '+get_random_name()+'\n'
 	headers+= get_read_receipt_headers(mail_from)
 	message_raw = headers + message.as_string()
-	server_obj.sendmail(smtp_user, mail_to, message_raw)
+	server_obj.sendmail(smtp_from, mail_to, message_raw)
+
+def smtp_testmail():
+	global smtp_pool_array, mail_que
+	mail_str = mail_que.get()
+	test_mail_sent = False
+	while not test_mail_sent:
+		smtp_server, port, smtp_user, password = random.choice(smtp_pool_array).split('|')
+		try:
+			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
+			mail_to = extract_email(mail_str)
+			smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
+			test_mail_sent = True
+		except:
+			pass
+	return True
+
+def test_inbox(inbox_test_id):
+	global glock_json_response_url, glock_report_url
+	results_mask = r'"Finished":true,"DKIM".+?"ISP":"Gmail".+?"iType":"([^"]+)".+?"ISP":"Outlook".+?"iType":"([^"]+)".+?"ISP":"Yahoo \(Global\)".+?"iType":"([^"]+)".+?"SpamAssassin".+?"Score":([\d.]+),'
+	results_array = []
+	print(wl+inf+f'sending test mail to '+bold(f'st-3-{inbox_test_id}@spamtest.glockdb.com')+'...')
+	smtp_testmail()
+	result_json = read(glock_json_response_url+inbox_test_id)
+	if '"errorCode":404' in result_json:
+		print(wl+err+'our ip address is banned by glock. skipping inbox test')
+	else:
+		while not re.findall(r'"Finished":true,"DKIM"', result_json):
+			print(wl+inf+'waiting ~15 seconds for the results to come'+('','.','..','...')[int(time.time())%4]+up)
+			time.sleep(0.5)
+			result_json = int(time.time())%4==0 and read(glock_json_response_url+inbox_test_id)
+		inbox_test_result = first(re.findall(results_mask, result_json)) or ['-','-','-','-']
+		for i, result in enumerate(inbox_test_result):
+			service_str = re.match(r'^(Primary|Inbox|[0-4]\.\d)$', result) and green(result,1) or red(result,1)
+			results_array.push(['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str)
+		print(wl+okk+', '.join(results_array))
+		print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
 def worker_item(mail_que, results_que):
 	global threads_counter, smtp_pool_array, loop_times
@@ -284,7 +321,7 @@ def worker_item(mail_que, results_que):
 							mail_str = False
 							time.sleep(0.5)
 							continue
-						smtp_sendmail(server_obj, smtp_user, mail_str)
+						smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 						msg = current_server+green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
 						results_que.put((self.name, msg, mails_sent))
 						mails_sent += 1
@@ -331,8 +368,9 @@ def load_config():
 		config['config_file'] = max([i for i in os.listdir() if re.search(r'.+\.config$', i)] or [''], key=os.path.getctime)
 	if not config['config_file']:
 		print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
+		print(inf+'you can download sample '+bold('.config')+' file from https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config')
 	while not is_file_or_url(config['config_file']):
-		config['config_file'] = input(npt+'enter desired config filename: ')
+		config['config_file'] = input(npt+'enter desired config filename or it\'s url: ')
 	temp_config.read(config['config_file'])
 	if not temp_config.has_section(head_name):
 		exit(err+'malformed config file')
@@ -366,10 +404,12 @@ def load_config():
 		config['redirects_list'] = read_lines(config['redirects_file']) if config['redirects_file'] else ['']
 
 def fill_mail_queue(mail_list_file, verify_every, mails_to_verify):
-	global mail_que, total_mails_to_sent
+	global mail_que, total_mails_to_sent, inbox_test_id
 	j = 0
 	for i in read_lines(mail_list_file):
 		i = normalize_delimiters(i)
+		if not j:
+			mail_que.put(i.replace(extract_email(i), f'st-3-{inbox_test_id}@spamtest.glockdb.com'))
 		if j % verify_every == 0:
 			for mail_to_verify in mails_to_verify.split(','):
 				mail_que.put(i.replace(extract_email(i), mail_to_verify))
@@ -414,7 +454,7 @@ def printer():
 		clock = sec_to_min(time.time()-time_start).replace(':', (' ', z+':'+b)[int(time.time()*2)%2])
 		status_bar = (
 			f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
-			f'[ {bold(clock)} \xb7 sent: {bold(num(total_sent))}/{bold(num(total_mails_to_sent))} ({bold(round(total_sent/total_mails_to_sent*100))}%), skipped: {bold(num(skipped))} ]'+
+			f'[ {bold(clock)} \xb7 sent/skipped: {bold(num(total_sent))}/{bold(num(skipped))} of {bold(num(total_mails_to_sent))} ({bold(round((total_sent+skipped)/total_mails_to_sent*100))}%) ]'+
 			f'[ {bold(num(sum(speed)))} mail/s ({bold(loop_time)}s/loop) ]'+
 			f'[ cpu: {bold(cpu_usage)}% \xb7 mem: {bold(mem_usage)}% \xb7 net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
 			f'[ {bold(num(len(smtp_pool_array)))} smtps left ]'
@@ -454,6 +494,7 @@ window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
+inbox_test_id = ''.join(secrets.choice(string.ascii_lowercase+string.digits) for i in range(8))
 
 show_banner()
 tune_network()
@@ -471,6 +512,7 @@ print(inf+'verification emails:           '+bold(config['mails_to_verify']))
 print(inf+'mail body:                     '+bold(config['mail_body']))
 print(inf+'attachments:                   '+bold(config['attachment_files'] or '-'))
 print(inf+'file with redirects:           '+bold(config['redirects_file'] or '-'))
+test_inbox(inbox_test_id)
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
 setup_threads()
