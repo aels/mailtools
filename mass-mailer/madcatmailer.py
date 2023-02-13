@@ -262,14 +262,19 @@ def smtp_testmail():
 	mail_str = mail_que.get()
 	test_mail_sent = False
 	while not test_mail_sent:
-		smtp_server, port, smtp_user, password = random.choice(smtp_pool_array).split('|')
+		try:
+			smtp_str = random.choice(smtp_pool_array)
+		except:
+			exit(wl+err+'sorry, no valid smtp servers left. bye.')
+		smtp_server, port, smtp_user, password = smtp_str.split('|')
 		try:
 			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
 			mail_to = extract_email(mail_str)
 			smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 			test_mail_sent = True
-		except:
-			pass
+		except Exception as e:
+			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
+			print(wl+err+str(e).split('b\'')[-1].strip())
 	return True
 
 def test_inbox(inbox_test_id):
