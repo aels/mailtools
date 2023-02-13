@@ -44,7 +44,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.10{z}
+          ╙     {b}MadCat Mailer v23.02.13{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -230,12 +230,13 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	subs = [mail_str, smtp_user, mail_redirect_url]
 	mail_to = extract_email(mail_str)
 	mail_from = expand_macros(config['mail_from'], subs)
+	mail_reply_to = expand_macros(config['mail_reply_to'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
 	smtp_from = extract_email(mail_from) if re.match(mailing_services, smtp_server) else smtp_user
 	message = MIMEMultipart()
 	message['To'] = mail_to
-	message['From'] = mail_from
+	message['From'] = mail_from.replace(extract_email(mail_from), smtp_from)
 	message['Subject'] = mail_subject
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
 	for attachment_filename, attachment_body in config['attachment_files_data'].items():
@@ -243,8 +244,8 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
 		message.attach(attachment)
-	headers = 'Return-Path: '+mail_from+'\n'
-	headers+= 'Reply-To: '+mail_from+'\n'
+	headers = 'Return-Path: '+smtp_from+'\n'
+	headers+= 'Reply-To: '+mail_reply_to+'\n'
 	headers+= 'X-Priority: 1\n'
 	headers+= 'X-MSmail-Priority: High\n'
 	headers+= 'X-Source-IP: 127.0.0.1\n'
@@ -252,7 +253,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+get_random_name()+'\n'
-	headers+= get_read_receipt_headers(mail_from)
+	headers+= get_read_receipt_headers(smtp_from)
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
@@ -357,6 +358,7 @@ def load_config():
 		'mails_list_file': '',
 		'mails_to_verify': '',
 		'mail_from': '',
+		'mail_reply_to': '',
 		'mail_subject': '',
 		'mail_body': '',
 		'attachment_files': '',
@@ -388,12 +390,10 @@ def load_config():
 		exit(err+'cannot open mails list file. does it exist?')
 	if len([is_valid_email(mail) for mail in config['mails_to_verify'].split(',')])<config['mails_to_verify'].count(',')+1:
 		exit(err+'not all test emails looks valid. check them, please')
-	if not config['mail_from']:
-		exit(err+'please fulfill '+bold('mail_from')+' parameter with desired name and email')
-	if not config['mail_subject']:
-		exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
-	if not config['mail_body']:
-		exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
+	config['mail_from'] or exit(err+'please fulfill '+bold('mail_from')+' parameter with desired name and email')
+	config['mail_reply_to'] = config['mail_reply_to'] or config['mail_from']
+	config['mail_subject'] or exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
+	config['mail_body'] or exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
 	if config['attachment_files'] and len([is_file_or_url(file) for file in config['attachment_files'].split(',')])<config['attachment_files'].count(',')+1:
 		exit(err+'one of attachment files seems does not exists')
 	for attachment_file_path in config['attachment_files'].split(','):
