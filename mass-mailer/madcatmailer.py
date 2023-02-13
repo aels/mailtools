@@ -274,7 +274,7 @@ def smtp_testmail():
 			test_mail_sent = True
 		except Exception as e:
 			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
-			print(wl+err+str(e).split('b\'')[-1].strip())
+			print(wl+err+smtp_server+'('+smtp_user+'): '+str(e).split('b\'')[-1].strip())
 	return True
 
 def test_inbox(inbox_test_id):
