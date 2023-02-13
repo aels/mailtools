@@ -44,7 +44,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.13{z}
+          ╙     {b}MadCat Mailer v23.02.14{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -233,7 +233,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	mail_reply_to = expand_macros(config['mail_reply_to'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
-	smtp_from = extract_email(mail_from) if re.match(mailing_services, smtp_server) else smtp_user
+	smtp_from = extract_email(mail_from) if re.search(mailing_services, smtp_server) else smtp_user
 	message = MIMEMultipart()
 	message['To'] = mail_to
 	message['From'] = mail_from.replace(extract_email(mail_from), smtp_from)
@@ -269,12 +269,11 @@ def smtp_testmail():
 		smtp_server, port, smtp_user, password = smtp_str.split('|')
 		try:
 			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
-			mail_to = extract_email(mail_str)
 			smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 			test_mail_sent = True
 		except Exception as e:
 			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
-			print(wl+err+smtp_server+'('+smtp_user+'): '+str(e).split('b\'')[-1].strip())
+			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(str(e).split('b\'')[-1].strip(),2))
 	return True
 
 def test_inbox(inbox_test_id):
@@ -308,7 +307,6 @@ def worker_item(mail_que, results_que):
 			results_que.put((self.name, f'~\bdone with {green(mails_sent,0)} mails', mails_sent))
 			break
 		else:
-			time_start = time.perf_counter()
 			smtp_str = random.choice(smtp_pool_array)
 			smtp_server, port, smtp_user, password = smtp_str.split('|')
 			current_server = f'{smtp_server} ({smtp_user}): '
@@ -320,10 +318,11 @@ def worker_item(mail_que, results_que):
 						break
 					mail_str = mail_str or mail_que.get()
 					try:
+						time_start = time.perf_counter()
 						mail_to = extract_email(mail_str)
 						is_dangerous = is_dangerous_email(mail_to)
 						if not mail_to or is_dangerous:
-							msg = current_server+red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+(mail_to and 'skipping' or 'no')+' email - '+(mail_to and mail_to+' ('+red(is_dangerous)+')' or mail_str)
+							msg = current_server+red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+(mail_to and 'skipping' or 'no')+' email - '+(mail_to and mail_to+' ('+red(is_dangerous,2)+')' or mail_str)
 							results_que.put((self.name, msg, mails_sent))
 							mail_str = False
 							time.sleep(0.5)
@@ -333,6 +332,8 @@ def worker_item(mail_que, results_que):
 						results_que.put((self.name, msg, mails_sent))
 						mails_sent += 1
 						mail_str = False
+						loop_times.append(time.perf_counter() - time_start)
+						len(loop_times)>100 and loop_times.pop(0)
 					except Exception as e:
 						if re.search(r'suspicio|suspended|too many|limit|spam|blocked|unexpectedly closed|mailbox unavailable', str(e).lower()):
 							raise Exception(e)
@@ -346,8 +347,6 @@ def worker_item(mail_que, results_que):
 				smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
 				time.sleep(1)
 			time.sleep(0.04)
-			loop_times.append(time.perf_counter() - time_start)
-			len(loop_times)>100 and loop_times.pop(0)
 	threads_counter -= 1
 
 def get_random_name():
