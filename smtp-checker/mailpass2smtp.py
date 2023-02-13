@@ -43,7 +43,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v22.11.04{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v23.02.13{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -205,7 +205,7 @@ def quit(signum, frame):
 	sys.exit(0)
 
 def is_valid_email(email):
-	return re.match(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}$', email.lower())
+	return re.match(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$', email)
 
 def find_email_password_collumnes(list_filename):
 	email_collumn = False
@@ -436,8 +436,8 @@ try:
 		start_from_line = int('0'+start_from_line)
 	smtp_filename = re.sub(r'\.([^.]+)$', r'_smtp.\1', list_filename)
 	verify_email = verify_email or ''
-except:
-	print(err+help_message)
+except Exception as e:
+	exit(err+red(e))
 try:
 	email_collumn, password_collumn = find_email_password_collumnes(list_filename)
 except Exception as e:
