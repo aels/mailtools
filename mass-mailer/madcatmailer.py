@@ -293,7 +293,7 @@ def test_inbox(inbox_test_id):
 		inbox_test_result = first(re.findall(results_mask, result_json)) or ['-','-','-','-']
 		for i, result in enumerate(inbox_test_result):
 			service_str = re.match(r'^(Primary|Inbox|[0-4]\.\d)$', result) and green(result,1) or red(result,1)
-			results_array.push(['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str)
+			results_array += [['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str]
 		print(wl+okk+', '.join(results_array))
 		print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
@@ -332,7 +332,7 @@ def worker_item(mail_que, results_que):
 						results_que.put((self.name, msg, mails_sent))
 						mails_sent += 1
 						mail_str = False
-						loop_times.append(time.perf_counter() - time_start)
+						loop_times += [time.perf_counter() - time_start]
 						len(loop_times)>100 and loop_times.pop(0)
 					except Exception as e:
 						if re.search(r'suspicio|suspended|too many|limit|spam|blocked|unexpectedly closed|mailbox unavailable', str(e).lower()):
@@ -398,11 +398,11 @@ def load_config():
 	config['mail_reply_to'] = config['mail_reply_to'] or config['mail_from']
 	config['mail_subject'] or exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
 	config['mail_body'] or exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
-	if config['attachment_files'] and len([is_file_or_url(file) for file in config['attachment_files'].split(',')])<config['attachment_files'].count(',')+1:
-		exit(err+'one of attachment files seems does not exists')
 	for attachment_file_path in config['attachment_files'].split(','):
 		if is_file_or_url(attachment_file_path):
 			config['attachment_files_data'][attachment_file_path.split('/')[-1]] = read(attachment_file_path)
+		else:
+			exit(err+'one of attachment files seems does not exists')
 	if config['redirects_file'] and not is_file_or_url(config['redirects_file']):
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
