@@ -291,10 +291,11 @@ def test_inbox(inbox_test_id):
 			break
 		if i==16:
 			inbox_test_result = ['Lost']*4
-	for i, result in enumerate(inbox_test_result):
-		service_str = re.match(r'^(Primary|Inbox|[0-4]\.\d)$', result) and green(result,1) or red(result,1)
-		results_array += ['[ '+['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str+' ]']
-	print(wl+okk+''.join(results_array))
+	for service in ['Gmail','Outlook','Yahoo','SpamAssassin']:
+		status = inbox_test_result.pop(0)
+		status = re.search(r'^(Primary|Inbox|[0-4]\.\d)$', status) and green(status) or red(status)
+		results_array += [service+': '+status]
+	print(wl+okk+', '.join(results_array).lower())
 	print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
 def worker_item(mail_que, results_que):
