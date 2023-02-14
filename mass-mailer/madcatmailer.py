@@ -273,7 +273,7 @@ def smtp_testmail():
 			test_mail_sent = True
 		except Exception as e:
 			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
-			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(str(e).split('b\'')[-1].strip(),2))
+			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(str(e).split('b\'')[-1].strip()))
 	return True
 
 def test_inbox(inbox_test_id):
@@ -282,20 +282,20 @@ def test_inbox(inbox_test_id):
 	results_array = []
 	print(wl+inf+f'sending test mail to '+bold(f'st-3-{inbox_test_id}@spamtest.glockdb.com')+'...')
 	smtp_testmail()
-	result_json = read(glock_json_response_url+inbox_test_id)
-	if '"errorCode":404' in result_json:
-		print(wl+err+'our ip address is banned by glock. skipping inbox test')
-	else:
-		while not re.findall(r'"Finished":true,"DKIM"', result_json):
-			print(wl+inf+'waiting ~15 seconds for the results to come'+('','.','..','...')[int(time.time())%4]+up)
-			time.sleep(0.5)
-			result_json = int(time.time())%4==0 and read(glock_json_response_url+inbox_test_id)
-		inbox_test_result = first(re.findall(results_mask, result_json)) or ['-','-','-','-']
-		for i, result in enumerate(inbox_test_result):
-			service_str = re.match(r'^(Primary|Inbox|[0-4]\.\d)$', result) and green(result,1) or red(result,1)
-			results_array += [['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str]
-		print(wl+okk+', '.join(results_array))
-		print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
+	for i in range(1,17):
+		time.sleep(1)
+		print(wl+inf+'waiting ~15 seconds for the results to come'+('','.','..','...')[i%4]+up)
+		result_json = i%5==0 and read(glock_json_response_url+inbox_test_id)
+		if result_json and re.findall(r'"Finished":true,"DKIM"', result_json):
+			inbox_test_result = first(re.findall(results_mask, result_json)) or ['-']*4
+			break
+		if i==16:
+			inbox_test_result = ['Lost']*4
+	for i, result in enumerate(inbox_test_result):
+		service_str = re.match(r'^(Primary|Inbox|[0-4]\.\d)$', result) and green(result,1) or red(result,1)
+		results_array += ['[ '+['Gmail','Outlook','Yahoo','SpamAssassin'][i]+': '+service_str+' ]']
+	print(wl+okk+''.join(results_array))
+	print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
 def worker_item(mail_que, results_que):
 	global threads_counter, smtp_pool_array, loop_times
