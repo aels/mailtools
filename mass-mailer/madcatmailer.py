@@ -402,7 +402,7 @@ def load_config():
 		if is_file_or_url(attachment_file_path):
 			config['attachment_files_data'][attachment_file_path.split('/')[-1]] = read(attachment_file_path)
 		else:
-			exit(err+'one of attachment files seems does not exists')
+			attachment_file_path and exit(err+'one of attachment files seems does not exists')
 	if config['redirects_file'] and not is_file_or_url(config['redirects_file']):
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
