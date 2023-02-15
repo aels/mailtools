@@ -233,10 +233,10 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	mail_reply_to = expand_macros(config['mail_reply_to'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
-	smtp_from = extract_email(mail_from) if re.search(mailing_services, smtp_server) else smtp_user
+	smtp_from = extract_email(smtp_user) or extract_email(mail_from) or 'no-reply@localhost'
 	message = MIMEMultipart()
 	message['To'] = mail_to
-	message['From'] = mail_from.replace(extract_email(mail_from), smtp_from)
+	message['From'] = mail_from.split(' <')[0]+' <'+smtp_from+'>'
 	message['Subject'] = mail_subject
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
 	for attachment_filename, attachment_body in config['attachment_files_data'].items():
