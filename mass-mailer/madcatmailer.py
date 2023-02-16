@@ -44,7 +44,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.14{z}
+          ╙     {b}MadCat Mailer v23.02.16{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -236,7 +236,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	smtp_from = extract_email(smtp_user) or extract_email(mail_from) or 'no-reply@localhost'
 	message = MIMEMultipart()
 	message['To'] = mail_to
-	message['From'] = mail_from.split(' <')[0]+' <'+smtp_from+'>'
+	message['From'] = smtp_from if is_valid_email(mail_from) else mail_from.split(' <')[0]+f' <{smtp_from}>'
 	message['Subject'] = mail_subject
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
 	for attachment_filename, attachment_body in config['attachment_files_data'].items():
