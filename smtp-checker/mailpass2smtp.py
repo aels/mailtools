@@ -1,11 +1,11 @@
 #!/usr/local/bin/python3
 
-import socket, threading, sys, ssl, time, re, os, random, signal, queue, resource, base64
+import socket, threading, sys, ssl, time, re, os, random, signal, queue, base64
 try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(sys.executable+' -m pip install psutil requests dnspython pyopenssl')
+	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython pyopenssl')
 	import psutil, requests, dns.resolver
 
 if sys.version_info[0] < 3:
@@ -13,10 +13,6 @@ if sys.version_info[0] < 3:
 
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
-# needed for faster and stable dns resolutions
-custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222,2001:4860:4860::8844,2a10:50c0::1:ff,2620:0:ccc::2,2620:fe::10,2606:4700:4700::1001,2620:0:ccd::2,2a04:52c0:101:75::75'.split(',')
-# for the sake of history
-autoconfig_url = 'https://autoconfig.thunderbird.net/v1.1/'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
@@ -43,7 +39,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v23.02.13{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v23.02.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -80,16 +76,18 @@ def num(s):
 	return f'{int(s):,}'
 
 def tune_network():
-	try:
-		resource.setrlimit(8, (2**20, 2**20))
-		print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
-		# if os.geteuid() == 0:
-		# 	print('tuning network settings...')
-		# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
-		# else:
-		# 	print('Better to run this script as root to allow better network performance')
-	except Exception as e:
-		print(wrn+'failed to set rlimit_nofile:   '+str(e))
+	if os.name != 'nt':
+		try:
+			import resource
+			resource.setrlimit(8, (2**20, 2**20))
+			print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
+			# if os.geteuid() == 0:
+			# 	print('tuning network settings...')
+			# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
+			# else:
+			# 	print('Better to run this script as root to allow better network performance')
+		except Exception as e:
+			print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
 def check_ipv6():
 	try:
@@ -223,8 +221,11 @@ def find_email_password_collumnes(list_filename):
 		return (email_collumn, password_collumn)
 	raise Exception('the file you provided does not contain emails')
 
-def wc_count(filename):
-	return int(os.popen('wc -l "'+filename+'"').read().strip().split(' ')[0])
+def wc_count(filename, lines=0):
+	file_handle = open(filename, 'rb')
+	while buf:=file_handle.raw.read(1024*1024):
+		lines += buf.count(b'\n')
+	return lines
 
 def is_ignored_host(mail):
 	global exclude_mail_hosts
