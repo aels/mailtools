@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, resource, base64, string, secrets
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, secrets
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -10,7 +10,7 @@ try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system(sys.executable+' -m pip3 install psutil dnspython requests pyopenssl')
+	os.system('apt -y install python3-pip; '+sys.executable+' -m pip3 install psutil dnspython requests pyopenssl')
 	import psutil, requests, dns.resolver
 
 if sys.version_info[0] < 3:
@@ -44,7 +44,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.16{z}
+          ╙     {b}MadCat Mailer v23.02.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -81,16 +81,18 @@ def num(s):
 	return f'{int(s):,}'
 
 def tune_network():
-	try:
-		resource.setrlimit(8, (2**20, 2**20))
-		print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
-		# if os.geteuid() == 0:
-		# 	print('tuning network settings...')
-		# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
-		# else:
-		# 	print('Better to run this script as root to allow better network performance')
-	except Exception as e:
-		print(wrn+'failed to set rlimit_nofile:   '+str(e))
+	if os.name != 'nt':
+		try:
+			import resource
+			resource.setrlimit(8, (2**20, 2**20))
+			print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
+			# if os.geteuid() == 0:
+			# 	print('tuning network settings...')
+			# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
+			# else:
+			# 	print('Better to run this script as root to allow better network performance')
+		except Exception as e:
+			print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
 def quit(signum, frame):
 	global error_log, config
