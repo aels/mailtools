@@ -132,7 +132,7 @@ def normalize_delimiters(s):
 	return re.sub(r'[:,\t| \']+', ';', re.sub(r'"+', '', s))
 
 def read(path):
-	return os.path.isfile(path) and open(path, 'r', encoding='utf-8', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
+	return os.path.isfile(path) and open(path, 'r', encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
 
 def read_lines(path):
 	return read(path).splitlines()
