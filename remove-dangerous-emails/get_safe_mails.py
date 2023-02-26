@@ -171,7 +171,7 @@ def get_mx_server(domain):
 		return re.search(r'solution lifetime expired', str(e)) and (time.sleep(0.5) or get_mx_server(domain))
 
 def judge_email(email):
-	global dangerous_users, dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, bads_cache, database, selected_email_providers
+	global dangerous_users, dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, bads_cache, database, whitelisted_mx, selected_email_providers
 	user, host = email.split('@')
 	if host in bads_cache:
 		raise Exception(bads_cache[host])
