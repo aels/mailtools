@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.02.24{z}
+          ╙     {b}Validol - Email Validator v23.02.26{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -175,13 +175,14 @@ def judge_email(email):
 	user, host = email.split('@')
 	if host in bads_cache:
 		raise Exception(bads_cache[host])
-	for domain in selected_email_providers.split(','):
-		if domain and domain in host:
-			return host
 	if re.search(dangerous_users, user.lower()):
 		raise Exception('bad username: '+user)
 	if re.search(dangerous_zones, host.lower()):
 		raise Exception('bad zone: '+host)
+	if selected_email_providers:
+		for domain in selected_email_providers.split(','):
+			if domain and domain in host:
+				return host
 	email_mx = get_mx_server(host)
 	if not email_mx:
 		raise Exception('no <mx> records found for: '+host)
@@ -320,8 +321,9 @@ try:
 		while not os.path.isfile(list_filename):
 			list_filename = input(npt+'path to file with emails: ')
 		selected_email_providers = input(npt+'domains to left in list, comma separated (leave empty if all): ')
-	safe_filename = re.sub(r'\.([^.]+)$', r'_safe.\1', list_filename)
-	dangerous_filename = re.sub(r'\.([^.]+)$', r'_dangerous.\1', list_filename)
+	suffixes = (r'_'+selected_email_providers, r'_not_'+selected_email_providers) if selected_email_providers else (r'_safe', r'_dangerous')
+	safe_filename = re.sub(r'\.([^.]+)$', suffixes[0]+r'.\1', list_filename)
+	dangerous_filename = re.sub(r'\.([^.]+)$', suffixes[1]+r'.\1', list_filename)
 except:
 	print(err+help_message)
 
@@ -331,7 +333,7 @@ time_start = time.time()
 bads = 0
 goods = 0
 progress = 0
-goods_cache = fill_domains_whitelist(domains_whitelist_path)
+goods_cache = {} if selected_email_providers else fill_domains_whitelist(domains_whitelist_path)
 bads_cache = {}
 mem_usage = 0
 cpu_usage = 0
