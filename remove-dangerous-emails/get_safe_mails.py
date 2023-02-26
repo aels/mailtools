@@ -121,7 +121,7 @@ def check_whitelist_exists():
 def fill_domains_whitelist(domains_whitelist_path):
 	goods_cache = {}
 	if os.path.isfile(domains_whitelist_path):
-		for domain in open(domains_whitelist_path, 'r', encoding='utf-8', errors='ignore').read().splitlines():
+		for domain in open(domains_whitelist_path, 'r', encoding='utf-8-sig', errors='ignore').read().splitlines():
 			goods_cache[domain] = 'precheck whitelist'
 	return goods_cache
 
@@ -347,7 +347,7 @@ loop_time = 0
 speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8-sig')
 
 print(inf+'source file:                   '+list_filename)
 print(inf+'total lines to procceed:       '+num(total_lines))
@@ -359,7 +359,7 @@ input(npt+'press [ Enter ] to start...')
 threading.Thread(target=every_second, daemon=True).start()
 threading.Thread(target=printer, args=(jobs_que, results_que), daemon=True).start()
 
-with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
+with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 	while True:
 		while not no_jobs_left and jobs_que.qsize()<min_threads*2:
 			line = fp.readline()
