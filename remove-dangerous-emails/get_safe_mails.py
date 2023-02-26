@@ -347,7 +347,7 @@ loop_time = 0
 speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
-sys.stdout.reconfigure(encoding='utf-8-sig')
+sys.stdout.reconfigure(encoding='utf-8')
 
 print(inf+'source file:                   '+list_filename)
 print(inf+'total lines to procceed:       '+num(total_lines))
