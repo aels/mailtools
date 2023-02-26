@@ -322,8 +322,7 @@ try:
 			list_filename = input(npt+'path to file with emails: ')
 		selected_email_providers = input(npt+'domains to left in list, comma separated (leave empty if all): ')
 	suffixes = (r'_'+selected_email_providers, r'_not_'+selected_email_providers) if selected_email_providers else (r'_safe', r'_dangerous')
-	safe_filename = re.sub(r'\.([^.]+)$', suffixes[0]+r'.\1', list_filename)
-	dangerous_filename = re.sub(r'\.([^.]+)$', suffixes[1]+r'.\1', list_filename)
+	safe_filename, dangerous_filename = (re.sub(r'\.([^.]+)$', s+r'.\1', list_filename) for s in suffixes)
 except:
 	print(err+help_message)
 
