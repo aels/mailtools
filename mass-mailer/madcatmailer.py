@@ -549,4 +549,3 @@ while True:
 		if not len(smtp_pool_array):
 			exit('\n'+wl+err+f'smtp list exhausted. all tasks terminated.\a')
 	time.sleep(0.04)
-
