@@ -207,7 +207,7 @@ def is_valid_email(email):
 
 def find_email_password_collumnes(list_filename):
 	email_collumn = False
-	with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
+	with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 		for line in fp:
 			line = normalize_delimiters(line.lower())
 			email = re.search(r'[\w.+-]+@[\w.-]+\.[a-z]{2,}', line)
@@ -480,7 +480,7 @@ input(npt+'press '+bold('[ Enter ]')+' to start...')
 threading.Thread(target=every_second, daemon=True).start()
 threading.Thread(target=printer, args=(jobs_que, results_que), daemon=True).start()
 
-with open(list_filename, 'r', encoding='utf-8', errors='ignore') as fp:
+with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 	for i in range(start_from_line):
 		line = fp.readline()
 	while True:
