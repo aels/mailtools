@@ -300,7 +300,7 @@ def printer(jobs_que, results_que):
 					safe_file_handle.write(line+'\n')
 				else:
 					thread_statuses.append(' '+line+': '+red(msg))
-					dangerous_file_handle.write(line+': '+msg+'\n')
+					dangerous_file_handle.write(line+'; '+msg+'\n')
 			if len(thread_statuses):
 				print(wl+'\n'.join(thread_statuses))
 			print(wl+status_bar+up)
