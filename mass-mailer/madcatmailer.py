@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.24{z}
+          ╙     {b}MadCat Mailer v23.02.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -192,17 +192,17 @@ def expand_macros(text, subs):
 		text = text.replace(macro, random.choice(macro[2:-2].split('|')))
 	return text
 
-def get_read_receipt_headers(email_to):
+def get_read_receipt_headers(mail_from, mail_to):
 	global no_read_receipt_for
-	if re.findall(no_read_receipt_for, email_to.lower()):
+	if re.findall(no_read_receipt_for, mail_to.lower()):
 		return ''
 	else:
-		receipt_headers =f'Disposition-Notification-To: {email_to}\n'
-		receipt_headers+=f'Generate-Delivery-Report: {email_to}\n'
-		receipt_headers+=f'Read-Receipt-To: {email_to}\n'
-		receipt_headers+=f'Return-Receipt-Requested: {email_to}\n'
-		receipt_headers+=f'Return-Receipt-To: {email_to}\n'
-		receipt_headers+=f'X-Confirm-reading-to: {email_to}\n'
+		receipt_headers =f'Disposition-Notification-To: {mail_from}\n'
+		receipt_headers+=f'Generate-Delivery-Report: {mail_from}\n'
+		receipt_headers+=f'Read-Receipt-To: {mail_from}\n'
+		receipt_headers+=f'Return-Receipt-Requested: {mail_from}\n'
+		receipt_headers+=f'Return-Receipt-To: {mail_from}\n'
+		receipt_headers+=f'X-Confirm-reading-to: {mail_from}\n'
 		return receipt_headers
 
 def str_ljust(string, length):
@@ -260,7 +260,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+get_random_name()+'\n'
-	headers+= get_read_receipt_headers(smtp_from)
+	headers+= get_read_receipt_headers(smtp_from, mail_to)
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
@@ -549,3 +549,4 @@ while True:
 		if not len(smtp_pool_array):
 			exit('\n'+wl+err+f'smtp list exhausted. all tasks terminated.\a')
 	time.sleep(0.04)
+
