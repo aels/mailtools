@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.02.27{z}
+          ╙     {b}MadCat Mailer v23.03.13{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -377,10 +377,11 @@ def load_config():
 	if len([i for i in sys.argv if i!='debug']) == 2:
 		config['config_file'] = sys.argv[1] if is_file_or_url(sys.argv[1]) else exit(err+'wrong config path or filename: it must be like '+bold('<...>.config'))
 	else:
-		config['config_file'] = max([i for i in os.listdir() if re.search(r'.+\.config$', i)] or [''], key=os.path.getctime)
-	if not config['config_file']:
-		print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
-		print(inf+'you can download sample '+bold('.config')+' file from '+dummy_config_path)
+		try:
+			config['config_file'] = max([i for i in os.listdir() if re.search(r'.+\.config$', i)], key=os.path.getctime)
+		except:
+			print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
+			print(wrn+'you can download sample '+bold('.config')+' file from '+dummy_config_path)
 	while not is_file_or_url(config['config_file']):
 		config['config_file'] = input(npt+'enter desired config filename or it\'s url: ')
 	temp_config.read(config['config_file'])
