@@ -313,7 +313,7 @@ tune_network()
 check_database_exists()
 check_whitelist_exists()
 try:
-	help_message = f'usage:\n    python3 {sys.argv[0]} '+bold('list_with_emails.txt')+' [selected,email,providers]'
+	help_message = f'usage:\n    python3 <(curl -fskSL gg.gg/email-validator) '+bold('list_with_emails.txt')+' [selected,email,providers]'
 	list_filename = sys.argv[1] if len(sys.argv)>1 and os.path.isfile(sys.argv[1]) else ''
 	selected_email_providers = sys.argv[2] if len(sys.argv)>2 and sys.argv[2]!='debug' else ''
 	debugging = 'debug' in sys.argv
