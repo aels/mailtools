@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.08{z}
+          ╙     {b}Validol - Email Validator v23.03.15{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -373,4 +373,5 @@ with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 		if threads_counter == 0 and no_jobs_left:
 			break
 		time.sleep(0.08)
-	print('\r\n'+okk+green('well done. bye.'))
+	time.sleep(1)
+	input('\r\n'+okk+green('well done.')+' press [ Enter ] to exit')
