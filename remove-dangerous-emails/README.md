@@ -48,24 +48,7 @@ are OK.
 Validol can check __~1,500,000 emails per hour__. Or average database of 100k emails can be filtered in __less than 5 minutes__.
 
 
+# Legal Notices
+You are ONLY allowed to use the following code for educational purposes. These scripts shall not be used for any kind of illegal activity nor law enforcement at any time (lol, really? Oh, for sure!). This restriction applies to all cases of usage, no matter whether the code as a whole or only parts of it are being used.
 
-
-# validol.php - deprecated in favor of much faster get_safe_mails.py.
-<img width="909" alt="image" src="https://user-images.githubusercontent.com/1212294/177665014-4fd269f3-0911-41a6-aa3f-2da2c38d74fa.png">
-
-## Setup
-- go to empty directory, where geo-ip database and packages will be located
-- download ip2location php classes with composer:
-```
-composer require ip2location/ip2location-php
-```
-- download _ip2location.bin_ database itself from url https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin and put it into the same folder.
-This database contains required subnet names data.
-- _Optionaly_ you can download `validol.php` script itself, but I recommend to curl it with every usage from this repository.
-- All done, we can go.
-## Usage
-Ofc you need __php installed__, if so, example command is:
-```
-php <(curl -fskSL bit.ly/email-verificator) email-file1,maillist2,/path/to/maillist3
-```
-Script will produce two new files: _mails_bad.txt_ with dangerous mails and reasons of each, and _mails_validated.txt_ which is your source file with dangerous lines removed.
+By downloading and/or using any part of the code and/or any file of this repository, you agree to this restriction without remarks.
