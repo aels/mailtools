@@ -39,7 +39,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v23.02.19{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v23.03.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -416,7 +416,7 @@ show_banner()
 tune_network()
 check_ipv6()
 try:
-	help_message = f'usage: \n{npt}python3 {sys.argv[0]} '+bold('list.txt')+' [verify_email@example.com] [ignored,email,domains] [start_from_line] [debug]'
+	help_message = f'usage: \n{npt}python3 <(curl -slkSL bit.ly/madcatsmtp) '+bold('list.txt')+' [verify_email@example.com] [ignored,email,domains] [start_from_line] [debug]'
 	list_filename = ([i for i in sys.argv if os.path.isfile(i) and sys.argv[0] != i]+[False]).pop(0)
 	verify_email = ([i for i in sys.argv if is_valid_email(i)]+[False]).pop(0)
 	exclude_mail_hosts = ','.join([i for i in sys.argv if re.match(r'[\w.,-]+$', i) and not os.path.isfile(i) and not re.match(r'(\d+|debug)$', i)]+[bad_mail_servers])
