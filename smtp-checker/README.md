@@ -30,7 +30,7 @@ sudo yum install python-dns
 ```
 ## Usage
 ```
-python3 <(curl -slkSL is.gd/madcatsmtp) list.txt [verify_email@example.com] [ignored,email,domains] [start_from_line] [rage]
+python3 <(curl -slkSL bit.ly/madcatsmtp) list.txt [verify_email@example.com] [ignored,email,domains] [start_from_line] [rage]
 ```
 where:
 - __list.txt__ is path to your combo list, or dump, or csv etc.
@@ -43,7 +43,7 @@ where:
 
 Or just:
 ```
-python3 <(curl -slkSL is.gd/madcatsmtp)
+python3 <(curl -slkSL bit.ly/madcatsmtp)
 ```
 and you will be prompted for missing parameters.
 
