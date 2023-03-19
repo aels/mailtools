@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, secrets
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.03.13{z}
+          ╙     {b}MadCat Mailer v23.03.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -381,9 +381,7 @@ def load_config():
 			config['config_file'] = max([i for i in os.listdir() if re.search(r'.+\.config$', i)], key=os.path.getctime)
 		except:
 			print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
-			print(wrn+'you can download sample '+bold('.config')+' file from '+dummy_config_path)
-	while not is_file_or_url(config['config_file']):
-		config['config_file'] = input(npt+'enter desired config filename or it\'s url: ')
+			exit(wrn+'you can download sample '+bold('.config')+' file from '+dummy_config_path)
 	temp_config.read(config['config_file'])
 	if not temp_config.has_section(head_name):
 		exit(err+'malformed config file')
@@ -505,7 +503,7 @@ window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
-inbox_test_id = ''.join(secrets.choice(string.ascii_lowercase+string.digits) for i in range(8))
+inbox_test_id = ''.join(random.choice(string.ascii_lowercase+string.digits) for i in range(8))
 
 show_banner()
 tune_network()
