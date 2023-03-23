@@ -259,7 +259,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+get_random_name()+'\n'
-	if not re.findall(no_read_receipt_for, mail_to.lower()):
+	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
 		headers+= get_read_receipt_headers(smtp_from)
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
@@ -380,7 +380,8 @@ def load_config():
 		'mail_subject': '',
 		'mail_body': '',
 		'attachment_files': '',
-		'redirects_file': ''
+		'redirects_file': '',
+		'add_read_receipts': ''
 	})
 	if len(sys.argv) == 2:
 		config['config_file'] = sys.argv[1] if is_file_or_url(sys.argv[1]) else exit(err+'wrong config path or filename: it must be like '+bold('<...>.config'))
