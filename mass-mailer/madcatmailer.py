@@ -278,7 +278,7 @@ def smtp_testmail():
 			smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
 			test_mail_sent = True
 		except Exception as e:
-			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()+' '+str(e.__traceback__.tb_lineno)
+			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
 			smtp_errors_que.put((smtp_str, msg, 0))
 			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
 			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
@@ -292,7 +292,7 @@ def test_inbox():
 	smtp_testmail()
 	for i in range(1,17):
 		time.sleep(1)
-		print(wl+inf+'waiting ~15 seconds for the results to come'+('','.','..','...')[i%4]+up)
+		print(wl+inf+'waiting ~15 seconds for the results to come'+(i%4*'.')+up)
 		result_json = i%5==0 and read(glock_json_response_url+inbox_test_id)
 		if result_json and re.findall(r'"Finished":true,"DKIM"', result_json):
 			inbox_test_result = first(re.findall(results_mask, result_json)) or ['-']*4
