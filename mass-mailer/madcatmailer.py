@@ -278,7 +278,7 @@ def smtp_testmail():
 			smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
 			test_mail_sent = True
 		except Exception as e:
-			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()+' '+e.__traceback__.tb_lineno
+			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()+' '+str(e.__traceback__.tb_lineno)
 			smtp_errors_que.put((smtp_str, msg, 0))
 			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
 			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
