@@ -8,8 +8,8 @@ except ImportError:
 	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython IP2Location')
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 
-if sys.version_info[0] < 3:
-	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
+if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
+	exit('\033[0;31mpython 3.9 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.15{z}
+          ╙     {b}Validol - Email Validator v23.03.23{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
