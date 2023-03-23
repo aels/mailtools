@@ -12,9 +12,7 @@ if sys.version_info[0] < 3:
 	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
-domains_whitelist_url = 'https://cdn.jsdelivr.net/gh/aels/mailtools/remove-dangerous-emails/domains_whitelist.txt'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
-domains_whitelist_path = tempfile.gettempdir()+'/domains_whitelist.txt'
 whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
 dangerous_users = r'^hr$|about|abuse|admin|apps|calendar|catch|community|confirm|contracts|customer|daemon|director|excel|fax|feedback|found|hello|help|home|invite|job|mail|manager|marketing|newsletter|office|orders|postmaster|regist|reply|report|sales|scanner|security|service|staff|submission|survey|tech|test|twitter|verification|webmaster'
 dangerous_zones = r'\.(gov|mil|edu)(\.[a-z.]+|$)'
@@ -24,6 +22,7 @@ dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
 
 resolver_obj = dns.resolver.Resolver()
 requests.packages.urllib3.disable_warnings()
+sys.stdout.reconfigure(encoding='utf-8')
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -107,24 +106,6 @@ def check_database_exists():
 			exit(wl+err+'cannot download ip2location.bin: '+red(e))
 	print(wl+okk+'ip2location.bin path:          '+ip2location_path)
 
-def check_whitelist_exists():
-	global domains_whitelist_url, domains_whitelist_path
-	if not os.path.isfile(domains_whitelist_path):
-		print(inf+f'downloading {b}domains whitelist{z} file. it will take some time...'+up)
-		try:
-			domains_whitelist_body = requests.get(domains_whitelist_url, timeout=5).text
-			open(domains_whitelist_path, 'w').write(domains_whitelist_body)
-		except Exception as e:
-			exit(wl+err+'cannot download domains_whitelist.txt: '+red(e))
-	print(wl+okk+'domains_whitelist.txt path:    '+domains_whitelist_path)
-
-def fill_domains_whitelist(domains_whitelist_path):
-	goods_cache = {}
-	if os.path.isfile(domains_whitelist_path):
-		for domain in open(domains_whitelist_path, 'r', encoding='utf-8-sig', errors='ignore').read().splitlines():
-			goods_cache[domain] = 'precheck whitelist'
-	return goods_cache
-
 def first(a):
 	return (a or [''])[0]
 
@@ -170,13 +151,13 @@ def get_mx_server(domain):
 	except Exception as e:
 		return 'solution lifetime expired' in str(e) and (time.sleep(0.5) or get_mx_server(domain))
 
-def judge_email(email):
-	global dangerous_users, dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, bads_cache, database, whitelisted_mx, selected_email_providers
+def is_safe_host(email):
+	global dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, goods_cache, bads_cache, database, whitelisted_mx, selected_email_providers
 	user, host = email.split('@')
 	if host in bads_cache:
 		raise Exception(bads_cache[host])
-	if re.search(dangerous_users, user.lower()):
-		raise Exception('bad username: '+user)
+	if host in goods_cache:
+		return goods_cache[host]
 	if re.search(dangerous_zones, host.lower()):
 		raise Exception('bad zone: '+host)
 	if selected_email_providers:
@@ -211,23 +192,33 @@ def judge_email(email):
 			raise Exception('[!] '+email_mx_top_host+': '+first(re.findall(r'<title>([^<]+)<', page_body.lower())))
 	return email_mx
 
+def is_safe_username(email):
+	global dangerous_users
+	user, host = email.split('@')
+	if re.search(dangerous_users, user.lower()):
+		raise Exception('bad username: '+user)
+	return email
+
 def is_safe_email(email):
-	global goods_cache, bads_cache
+	global goods_cache, bads_cache, mem_usage
 	host = email.split('@')[-1]
-	if not host in goods_cache:
-		try:
-			goods_cache[host] = judge_email(email)
-		except Exception as e:
-			if not 'bad username' in str(e):
-				bads_cache[host] = str(e)
-			raise Exception(str(e))
-	return goods_cache[host]
+	try:
+		is_good_host = is_safe_host(email)
+		if mem_usage<80:
+			goods_cache[host] = is_good_host
+		is_good_user = is_safe_username(email)
+		return is_good_host
+	except Exception as e:
+		if not 'bad username' in str(e) and mem_usage<80:
+			bads_cache[host] = str(e)
+		raise Exception(str(e))
 
 def extract_email(line):
 	return first(re.search(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
 
 def quit(signum, frame):
 	print('\r\n'+okk+'exiting... see ya later. bye.')
+	time.sleep(1)
 	sys.exit(0)
 
 def wc_count(filename, lines=0):
@@ -297,11 +288,12 @@ def printer(jobs_que, results_que):
 			while not results_que.empty():
 				is_ok, line, msg = results_que.get()
 				if is_ok:
-					# thread_statuses.append(' '+line+': '+green(msg))
 					safe_file_handle.write(line+'\n')
+					safe_file_handle.flush()
 				else:
 					thread_statuses.append(' '+line+': '+red(msg))
 					dangerous_file_handle.write(line+'; '+msg+'\n')
+					dangerous_file_handle.flush()
 			if len(thread_statuses):
 				print(wl+'\n'.join(thread_statuses))
 			print(wl+status_bar+up)
@@ -311,7 +303,6 @@ signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
 check_database_exists()
-check_whitelist_exists()
 try:
 	help_message = f'usage:\n    python3 <(curl -fskSL bit.ly/getsafemails) '+bold('list_with_emails.txt')+' [selected,email,providers]'
 	list_filename = sys.argv[1] if len(sys.argv)>1 and os.path.isfile(sys.argv[1]) else ''
@@ -333,7 +324,7 @@ time_start = time.time()
 bads = 0
 goods = 0
 progress = 0
-goods_cache = {} if selected_email_providers else fill_domains_whitelist(domains_whitelist_path)
+goods_cache = {}
 bads_cache = {}
 mem_usage = 0
 cpu_usage = 0
@@ -347,7 +338,6 @@ loop_time = 0
 speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
-sys.stdout.reconfigure(encoding='utf-8')
 
 print(inf+'source file:                   '+list_filename)
 print(inf+'total lines to procceed:       '+num(total_lines))
