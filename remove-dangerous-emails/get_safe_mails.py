@@ -127,7 +127,7 @@ def get_top_host(host):
 	return '.'.join(host_arr[-3 if len(host_arr[-2])<4 else -2:])
 
 def switch_dns_nameserver():
-	global resolver_obj
+	global resolver_obj, custom_dns_nameservers
 	resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
 	resolver_obj.rotate = True
 	return True
@@ -146,9 +146,9 @@ def get_ns_record(name, string):
 		if name == 'mx':
 			return str(resolver_obj.resolve(string, 'mx')[0].exchange)[:-1]
 	except Exception as e:
-		msg = f'dns resolver overloaded. switching...'
+		msg = 'dns resolver overloaded. switching...'
 		reason = 'solution lifetime expired'
-		return reason in str(e) and (results_que.put((False, orange(msg), '')) or switch_dns_nameserver() and get_ns_record(name, string))
+		return reason in str(e) and (results_que.put((False, msg, '')) or switch_dns_nameserver() and get_ns_record(name, string))
 		# return reason in str(e) and (results_que.put((False, orange(msg), '')) or time.sleep(random.randint(1,10)) or get_ns_record(name, string))
 
 def is_safe_host(email):
@@ -292,7 +292,7 @@ def printer(jobs_que, results_que):
 					safe_file_handle.flush()
 				else:
 					email = extract_email(line)
-					thread_statuses.append(' '+line.replace(email,red(email))+': '+red(msg))
+					thread_statuses.append(msg and ' '+line.replace(email,red(email))+': '+red(msg) or orange(line))
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
