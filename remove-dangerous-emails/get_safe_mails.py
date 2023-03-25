@@ -5,12 +5,13 @@ try:
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 except ImportError:
 	print('\033[0;33minstalling missing packages...\033[0m')
-	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython IP2Location')
+	os.system('apt -y install python3-pip; pip3 install psutil requests dnspython IP2Location')
 	import psutil, requests, IP2Location, dns.resolver, dns.reversename
 
 if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
 	exit('\033[0;31mpython 3.9 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
+custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
 whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
@@ -45,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.23{z}
+          ╙     {b}Validol - Email Validator v23.03.25{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -125,31 +126,29 @@ def get_top_host(host):
 	host_arr = host.split('.')
 	return '.'.join(host_arr[-3 if len(host_arr[-2])<4 else -2:])
 
-def get_ip_of_host(host):
+def switch_dns_nameserver():
 	global resolver_obj
-	try:
-		host = resolver_obj.resolve(host, 'cname')[0].target
-	except:
-		pass
-	try:
-		return resolver_obj.resolve(host, 'a')[0].to_text()
-	except Exception as e:
-		return 'solution lifetime expired' in str(e) and (time.sleep(0.5) or get_ip_of_host(host))
+	resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
+	resolver_obj.rotate = True
+	return True
 
-def get_ptr(ip):
+def get_ns_record(name, string):
 	global resolver_obj
 	try:
-		reverse_name = dns.reversename.from_address(ip)
-		return str(resolver_obj.resolve(reverse_name, 'ptr')[0])[:-1]
+		if name is 'a':
+			try:
+				string = resolver_obj.resolve(string, 'cname')[0].target
+			except:
+				pass
+			return resolver_obj.resolve(string, 'a')[0].to_text()
+		if name is 'ptr':
+			return str(resolver_obj.resolve(dns.reversename.from_address(string), 'ptr')[0])[:-1]
+		if name is 'mx':
+			return str(resolver_obj.resolve(name, 'mx')[0].exchange)[:-1]
 	except Exception as e:
-		return 'solution lifetime expired' in str(e) and (time.sleep(0.5) or get_ptr(ip))
-
-def get_mx_server(domain):
-	global resolver_obj
-	try:
-		return str(resolver_obj.resolve(domain, 'mx')[0].exchange)[:-1]
-	except Exception as e:
-		return 'solution lifetime expired' in str(e) and (time.sleep(0.5) or get_mx_server(domain))
+		msg = 'dns resolver overloaded. switching...'
+		reason = 'solution lifetime expired'
+		return reason in str(e) and (results_que.put((False, orange(msg), '')) or switch_dns_nameserver() and get_ns_record(name, string))
 
 def is_safe_host(email):
 	global dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, goods_cache, bads_cache, database, whitelisted_mx, selected_email_providers
@@ -164,7 +163,7 @@ def is_safe_host(email):
 		for domain in selected_email_providers.split(','):
 			if domain and domain in host:
 				return host
-	email_mx = get_mx_server(host)
+	email_mx = get_ns_record('mx', host)
 	if not email_mx:
 		raise Exception('no <mx> records found for: '+host)
 	if selected_email_providers:
@@ -176,13 +175,13 @@ def is_safe_host(email):
 		return email_mx
 	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_mx):
 		raise Exception(email_mx)
-	email_mx_ip = get_ip_of_host(email_mx)
+	email_mx_ip = get_ns_record('a', email_mx)
 	if not email_mx_ip:
 		raise Exception('no <a> record found for mx server: '+email_mx)
 	email_isp = database.get_isp(email_mx_ip) or ''
 	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_isp.lower()):
 		raise Exception(email_isp)
-	reversename = get_ptr(email_mx_ip) or ''
+	reversename = get_ns_record('ptr', email_mx_ip) or ''
 	if re.search(dangerous_isps2, reversename):
 		raise Exception(reversename)
 	email_mx_top_host = get_top_host(email_mx)
@@ -229,7 +228,7 @@ def wc_count(filename, lines=0):
 
 def worker_item(jobs_que, results_que):
 	global min_threads, threads_counter, no_jobs_left, loop_times, goods, bads, progress
-	while True:
+	for lives in range(100):
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads or jobs_que.empty() and no_jobs_left:
 			break
 		if jobs_que.empty():
@@ -246,7 +245,7 @@ def worker_item(jobs_que, results_que):
 				results_que.put((False, line, str(e)))
 				bads += 1
 			progress += 1
-			time.sleep(0.08)
+			time.sleep(0.05)
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -291,7 +290,8 @@ def printer(jobs_que, results_que):
 					safe_file_handle.write(line+'\n')
 					safe_file_handle.flush()
 				else:
-					thread_statuses.append(' '+line+': '+red(msg))
+					email = extract_email(line)
+					thread_statuses.append(' '+line.replace(email,red(email))+': '+red(msg))
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
