@@ -295,7 +295,7 @@ def printer(jobs_que, results_que):
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
-				print((wl+'\n'.join(thread_statuses)).encode('utf-8'))
+				print(wl+'\n'.join(thread_statuses))
 			print(wl+status_bar+up)
 			time.sleep(0.08)
 
