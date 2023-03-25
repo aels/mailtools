@@ -135,15 +135,15 @@ def switch_dns_nameserver():
 def get_ns_record(name, string):
 	global resolver_obj
 	try:
-		if name is 'a':
+		if name == 'a':
 			try:
 				string = resolver_obj.resolve(string, 'cname')[0].target
 			except:
 				pass
 			return resolver_obj.resolve(string, 'a')[0].to_text()
-		if name is 'ptr':
+		if name == 'ptr':
 			return str(resolver_obj.resolve(dns.reversename.from_address(string), 'ptr')[0])[:-1]
-		if name is 'mx':
+		if name == 'mx':
 			return str(resolver_obj.resolve(name, 'mx')[0].exchange)[:-1]
 	except Exception as e:
 		msg = 'dns resolver overloaded. switching...'
