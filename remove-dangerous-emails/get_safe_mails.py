@@ -133,7 +133,7 @@ def switch_dns_nameserver():
 	return True
 
 def get_ns_record(name, string):
-	global resolver_obj
+	global resolver_obj, results_que
 	try:
 		if name == 'a':
 			try:
@@ -146,7 +146,7 @@ def get_ns_record(name, string):
 		if name == 'mx':
 			return str(resolver_obj.resolve(string, 'mx')[0].exchange)[:-1]
 	except Exception as e:
-		msg = 'dns resolver overloaded. switching...'
+		msg = f'dns resolver overloaded. switching...'
 		reason = 'solution lifetime expired'
 		return reason in str(e) and (results_que.put((False, orange(msg), '')) or switch_dns_nameserver() and get_ns_record(name, string))
 		# return reason in str(e) and (results_que.put((False, orange(msg), '')) or time.sleep(random.randint(1,10)) or get_ns_record(name, string))
