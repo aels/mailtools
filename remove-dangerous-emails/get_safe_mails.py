@@ -148,7 +148,8 @@ def get_ns_record(name, string):
 	except Exception as e:
 		msg = 'dns resolver overloaded. switching...'
 		reason = 'solution lifetime expired'
-		return reason in str(e) and (results_que.put((False, orange(msg), '')) or switch_dns_nameserver() and get_ns_record(name, string))
+		# return reason in str(e) and (results_que.put((False, orange(msg), '')) or switch_dns_nameserver() and get_ns_record(name, string))
+		return reason in str(e) and (results_que.put((False, orange(msg), '')) or time.sleep(random.randint(1,10)) or get_ns_record(name, string))
 
 def is_safe_host(email):
 	global dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, goods_cache, bads_cache, database, whitelisted_mx, selected_email_providers
