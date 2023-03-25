@@ -271,7 +271,7 @@ def every_second():
 				threads_counter += 1
 		except:
 			pass
-		time.sleep(0.05)
+		time.sleep(0.1)
 
 def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, bads
@@ -281,7 +281,7 @@ def printer(jobs_que, results_que):
 			status_bar = (
 				f'{b}['+green('\u2665',int(time.time()*2)%2)+f'{b}]{z}'+
 				f'[ {bold(clock)} \xb7 progress: {bold(num(progress))}/{bold(num(total_lines))} ({bold(round(progress/total_lines*100))}%) \xb7 speed: {bold(num(round(sum(speed)/10)))}lines/s ({bold(loop_time)}s/loop) ]'+
-				f'[ cpu: {bold(cpu_usage)}% \xb7 mem: {bold(mem_usage)}% \xb7 net: {bold(bytes_to_mbit(net_usage*20))}Mbit/s ]'+
+				f'[ cpu: {bold(cpu_usage)}% \xb7 mem: {bold(mem_usage)}% \xb7 net: {bold(bytes_to_mbit(net_usage*10))}Mbit/s ]'+
 				f'[ threads: {bold(threads_counter)} \xb7 goods/bads: {green(num(goods),1)}/{red(num(bads),1)} ]'
 			)
 			thread_statuses = []
