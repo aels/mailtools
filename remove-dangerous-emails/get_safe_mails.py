@@ -292,7 +292,7 @@ def printer(jobs_que, results_que):
 					safe_file_handle.flush()
 				else:
 					email = extract_email(line)
-					thread_statuses.append(msg and ' '+line.replace(email,red(email))+': '+red(msg) or orange(line))
+					thread_statuses.append(msg and ' '+line.replace(email,red(email))+': '+red(msg) or orange(' '+line,7))
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
