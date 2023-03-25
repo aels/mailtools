@@ -274,7 +274,7 @@ def every_second():
 
 def printer(jobs_que, results_que):
 	global progress, total_lines, speed, loop_time, cpu_usage, mem_usage, net_usage, threads_counter, goods, bads
-	with open(safe_filename, 'a') as safe_file_handle, open(dangerous_filename, 'a') as dangerous_file_handle:
+	with open(safe_filename, 'a', encoding='utf-8') as safe_file_handle, open(dangerous_filename, 'a', encoding='utf-8') as dangerous_file_handle:
 		while True:
 			clock = sec_to_min(time.time()-time_start).replace(':', (' ', z+':'+b)[int(time.time()*2)%2])
 			status_bar = (
@@ -295,8 +295,8 @@ def printer(jobs_que, results_que):
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
-				print(wl+'\n'.join(thread_statuses))
-			print(wl+status_bar+up)
+				print(wl+'\n'.join(thread_statuses).encode('utf-8'))
+			print(wl+status_bar.encode('utf-8')+up)
 			time.sleep(0.08)
 
 signal.signal(signal.SIGINT, quit)
