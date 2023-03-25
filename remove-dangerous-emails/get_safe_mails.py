@@ -246,7 +246,7 @@ def worker_item(jobs_que, results_que):
 				results_que.put((False, line, str(e)))
 				bads += 1
 			progress += 1
-			time.sleep(0.05)
+			time.sleep(0.01)
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
