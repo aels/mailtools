@@ -229,7 +229,7 @@ def wc_count(filename, lines=0):
 
 def worker_item(jobs_que, results_que):
 	global min_threads, threads_counter, no_jobs_left, loop_times, goods, bads, progress
-	for lives in range(1000):
+	for lives in range(100):
 		if (mem_usage>90 or cpu_usage>90) and threads_counter>min_threads or jobs_que.empty() and no_jobs_left:
 			break
 		if jobs_que.empty():
