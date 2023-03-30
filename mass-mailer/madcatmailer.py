@@ -163,8 +163,8 @@ def is_valid_email(email):
 def is_dangerous_email(email):
 	global resolver_obj, dangerous_domains
 	try:
-		mx_domain = str(resolver_obj.resolve(email.split('@')[1], 'mx')[0].exchange)[0:-1]
-		return mx_domain if re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain) else False
+		mx_domain = str(resolver_obj.resolve(email.split('@')[-1], 'mx')[0].exchange)[0:-1]
+		return mx_domain if re.findall(dangerous_domains, mx_domain) and not re.findall(r'\.outlook\.com$', mx_domain) else False
 	except:
 		return 'no mx records found'
 
@@ -306,7 +306,7 @@ def test_inbox():
 	print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
 def worker_item(mail_que, results_que):
-	global threads_counter, smtp_pool_array, loop_times, smtp_errors_que, mails_dangerous_que, config, test_mail_str
+	global threads_counter, smtp_pool_array, smtp_pool_tested, loop_times, smtp_errors_que, mails_dangerous_que, config, test_mail_str
 	self = threading.current_thread()
 	mails_to_verify = config['mails_to_verify'].split(',')
 	mail_str = False
@@ -326,9 +326,13 @@ def worker_item(mail_que, results_que):
 				while True:
 					if mail_que.empty() and not mail_str:
 						break
-					mail_str = test_mail_str.replace(extract_email(test_mail_str), mails_to_verify[smtp_sent]) if smtp_sent<len(mails_to_verify) else mail_str or mail_que.get()
 					try:
 						time_start = time.perf_counter()
+						if smtp_pool_tested[smtp_str]<len(mails_to_verify):
+							mail_str = test_mail_str.replace(extract_email(test_mail_str), mails_to_verify[smtp_sent])
+							smtp_pool_tested[smtp_str] += 1
+						else:
+							mail_str = mail_str or mail_que.get()
 						mail_to = extract_email(mail_str)
 						if is_dangerous := is_dangerous_email(mail_to):
 							msg = red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+'skipping email - '+mail_to+' ('+red(is_dangerous)+')'
@@ -368,7 +372,7 @@ def get_random_name():
 	return random.choice(fnames)+' '+random.choice(lnames)
 
 def load_config():
-	global config, smtp_pool_array
+	global config, smtp_pool_array, threads_count
 	head_name = 'madcatmailer'
 	temp_config = configparser.ConfigParser({
 		'smtps_list_file': '',
@@ -402,8 +406,10 @@ def load_config():
 	else:
 		config['smtps_errors_file'] = re.sub(r'\.([^.]+)$', r'_error_log.\1', config['smtps_list_file'])
 		smtp_pool_array = read_lines(config['smtps_list_file'])
-		if len([smtp_line for smtp_line in smtp_pool_array if re.match(r'[\w.+-]+\|\d+\|[@\w.+-]+\|[^|]+', smtp_line)])<len(smtp_pool_array):
-			exit(err+bold(config['smtps_list_file'])+' list is not in format '+bold('host|port|username|password'))
+		for smtp_line in smtp_pool_array:
+			smtp_pool_tested[smtp_line] = 0
+			not re.findall(r'^[\w.+-]+\|\d+\|[@\w.+-]+\|[^|]+$', smtp_line) and exit(err+'"'+smtp_line+'" is not like "host|port|username|password"')
+	threads_count = len(smtp_pool_array)*5 if len(smtp_pool_array)*5<40 else 40
 	if not is_file_or_url(config['mails_list_file']):
 		exit(err+'cannot open mails list file. does it exist?')
 	else:
@@ -512,6 +518,7 @@ results_que = queue.Queue()
 smtp_errors_que = queue.Queue()
 mails_dangerous_que = queue.Queue()
 smtp_pool_array = []
+smtp_pool_tested = {}
 threads_statuses = {}
 test_mail_str = ''
 threads_count = 40
