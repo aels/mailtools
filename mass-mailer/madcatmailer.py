@@ -10,7 +10,7 @@ try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system('apt -y install python3-pip; '+sys.executable+' -m pip3 install psutil dnspython requests pyopenssl')
+	os.system('apt -y install python3-pip; pip3 install psutil dnspython requests pyopenssl')
 	import psutil, requests, dns.resolver
 
 if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
@@ -48,7 +48,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.03.23{z}
+          ╙     {b}MadCat Mailer v23.03.30{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -424,6 +424,7 @@ def load_config():
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
 		config['redirects_list'] = read_lines(config['redirects_file']) if config['redirects_file'] else ['']
+	exit('true' if config['add_read_receipts'] else 'false')
 
 def fill_mail_queue():
 	global mail_que, total_mails_to_sent, inbox_test_id, test_mail_str, config
