@@ -263,6 +263,15 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
+def get_testmail_str(smtp_str):
+	global smtp_pool_tested, test_mail_str, config
+	mails_to_verify = config['mails_to_verify'].split(',')
+	mail_str = False
+	if smtp_pool_tested[smtp_str]<len(mails_to_verify):
+		mail_str = test_mail_str.replace(extract_email(test_mail_str), mails_to_verify[smtp_pool_tested[smtp_str]])
+		smtp_pool_tested[smtp_str] += 1
+	return mail_str
+
 def smtp_testmail():
 	global smtp_pool_array, test_mail_str, smtp_errors_que
 	test_mail_sent = False
@@ -306,9 +315,8 @@ def test_inbox():
 	print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
 
 def worker_item(mail_que, results_que):
-	global threads_counter, smtp_pool_array, smtp_pool_tested, loop_times, smtp_errors_que, mails_dangerous_que, config, test_mail_str
+	global threads_counter, smtp_pool_array, loop_times, smtp_errors_que, mails_dangerous_que, config
 	self = threading.current_thread()
-	mails_to_verify = config['mails_to_verify'].split(',')
 	mail_str = False
 	mails_sent = 0
 	while True:
@@ -328,11 +336,7 @@ def worker_item(mail_que, results_que):
 						break
 					try:
 						time_start = time.perf_counter()
-						if smtp_pool_tested[smtp_str]<len(mails_to_verify):
-							mail_str = test_mail_str.replace(extract_email(test_mail_str), mails_to_verify[smtp_sent])
-							smtp_pool_tested[smtp_str] += 1
-						else:
-							mail_str = mail_str or mail_que.get()
+						mail_str = get_testmail_str(smtp_str) or mail_str or mail_que.get()
 						mail_to = extract_email(mail_str)
 						if is_dangerous := is_dangerous_email(mail_to):
 							msg = red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+'skipping email - '+mail_to+' ('+red(is_dangerous)+')'
