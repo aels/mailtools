@@ -132,7 +132,7 @@ def sec_to_min(i):
 	return '%02d:%02d'%(int(i/60), i%60)
 
 def normalize_delimiters(s):
-	return re.sub(r'[:,\t| \']+', ';', re.sub(r'"+', '', s))
+	return re.sub(r'[:,\t|]+', ';', re.sub(r'"+', '', s))
 
 def read(path):
 	return os.path.isfile(path) and open(path, 'r', encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
@@ -169,7 +169,7 @@ def is_dangerous_email(email):
 		return 'no mx records found'
 
 def extract_email(line):
-	return first(re.search(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
+	return first(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
 
 def expand_macros(text, subs):
 	mail_str, smtp_user, mail_redirect_url = subs
