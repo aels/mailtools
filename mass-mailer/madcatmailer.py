@@ -196,12 +196,12 @@ def expand_macros(text, subs):
 	return text
 
 def get_read_receipt_headers(mail_from):
-	receipt_headers =f'Disposition-Notification-To: {mail_from}\n'
-	receipt_headers+=f'Generate-Delivery-Report: {mail_from}\n'
-	receipt_headers+=f'Read-Receipt-To: {mail_from}\n'
-	receipt_headers+=f'Return-Receipt-Requested: {mail_from}\n'
-	receipt_headers+=f'Return-Receipt-To: {mail_from}\n'
-	receipt_headers+=f'X-Confirm-reading-to: {mail_from}\n'
+	receipt_headers = f'Disposition-Notification-To: {mail_from}\n'
+	receipt_headers+= f'Generate-Delivery-Report: {mail_from}\n'
+	receipt_headers+= f'Read-Receipt-To: {mail_from}\n'
+	receipt_headers+= f'Return-Receipt-Requested: {mail_from}\n'
+	receipt_headers+= f'Return-Receipt-To: {mail_from}\n'
+	receipt_headers+= f'X-Confirm-reading-to: {mail_from}\n'
 	return receipt_headers
 
 def str_ljust(string, length):
@@ -259,8 +259,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+get_random_name()+'\n'
-	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
-		headers+= get_read_receipt_headers(smtp_from)
+	headers+= get_read_receipt_headers(smtp_from) if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()) else ''
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
@@ -424,7 +423,6 @@ def load_config():
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
 		config['redirects_list'] = read_lines(config['redirects_file']) if config['redirects_file'] else ['']
-	exit('true' if config['add_read_receipts'] else 'false')
 
 def fill_mail_queue():
 	global mail_que, total_mails_to_sent, inbox_test_id, test_mail_str, config
