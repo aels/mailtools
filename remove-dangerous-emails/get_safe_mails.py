@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.25{z}
+          ╙     {b}Validol - Email Validator v23.03.30{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -225,7 +225,7 @@ def wc_count(filename, lines=0):
 	file_handle = open(filename, 'rb')
 	while buf:=file_handle.raw.read(1024*1024):
 		lines += buf.count(b'\n')
-	return lines
+	return lines+1
 
 def worker_item(jobs_que, results_que):
 	global min_threads, threads_counter, no_jobs_left, loop_times, goods, bads, progress
@@ -246,7 +246,7 @@ def worker_item(jobs_que, results_que):
 				results_que.put((False, line, str(e)))
 				bads += 1
 			progress += 1
-			time.sleep(0.01)
+			time.sleep(0.05)
 			loop_times.append(time.perf_counter() - time_start)
 			loop_times.pop(0) if len(loop_times)>min_threads else 0
 	threads_counter -= 1
@@ -266,7 +266,7 @@ def every_second():
 			net_usage = psutil.net_io_counters().bytes_sent - net_usage_old
 			net_usage_old += net_usage
 			loop_time = round(sum(loop_times)/len(loop_times), 2) if len(loop_times) else 0
-			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and not no_jobs_left:
+			if threads_counter<max_threads and mem_usage<80 and cpu_usage<80 and jobs_que.qsize():
 				threading.Thread(target=worker_item, args=(jobs_que, results_que), daemon=True).start()
 				threads_counter += 1
 		except:
@@ -292,7 +292,7 @@ def printer(jobs_que, results_que):
 					safe_file_handle.flush()
 				else:
 					email = extract_email(line)
-					thread_statuses.append(msg and ' '+line.replace(email,red(email))+': '+red(msg) or orange(' '+line,7))
+					thread_statuses.append(msg and ' '+line.replace(email,red(email))+': '+red(msg) or orange(' '+line))
 					dangerous_file_handle.write(line+'; '+msg+'\n')
 					dangerous_file_handle.flush()
 			if len(thread_statuses):
@@ -361,7 +361,7 @@ with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 				jobs_que.put(line.strip())
 			else:
 				progress += 1
-		if threads_counter == 0 and no_jobs_left:
+		if threads_counter == 0 and no_jobs_left and not jobs_que.qsize():
 			break
 		time.sleep(0.08)
 	time.sleep(1)
