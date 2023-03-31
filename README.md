@@ -7,7 +7,7 @@ XSS.is (Damagelab reborn) is one of the oldest underground forums with skilled a
 Most likely there you will find help and new business partners. [Welcome aboard!](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
 # Mail Tools
 - [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid smtp credentials.
-- [x] [Validol - email validator/verificator that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
+- [x] [Validol - email validator/debouncer that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
 - [ ] [MadCat mailer](https://github.com/aels/mailtools/tree/main/mass-mailer). Just another multithreaded smtplib-based mailer. Worth giving it a try.
 - [ ] InboxStat - gives you statistics about list of inboxes by emails and urls. Also accepts search query, if you are looking for something specific. In development.
 - [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
