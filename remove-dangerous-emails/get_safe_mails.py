@@ -17,7 +17,7 @@ ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
 whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
 dangerous_users = r'^hr$|about|abuse|admin|apps|calendar|catch|community|confirm|contracts|customer|daemon|director|excel|fax|feedback|found|hello|help|home|invite|job|mail|manager|marketing|newsletter|office|orders|postmaster|regist|reply|report|sales|scanner|security|service|staff|submission|survey|tech|test|twitter|verification|webmaster'
 dangerous_zones = r'\.(gov|mil|edu)(\.[a-z.]+|$)'
-dangerous_isps  = r'acronis|acros|adlice|alinto|appriver|aspav|atomdata|avanan|avast|barracuda|baseq|bitdefender|broadcom|btitalia|censornet|checkpoint|cisco|cistymail|clean-mailbox|clearswift|closedport|cloudflare|comforte|corvid|crsp|cyren|darktrace|data-mail-group|dmarcly|drweb|duocircle|e-purifier|earthlink-vadesecure|ecsc|eicar|elivescanned|eset|essentials|exchangedefender|fireeye|forcepoint|fortinet|gartner|gatefy|gonkar|guard|helpsystems|heluna|hosted-247|iberlayer|indevis|infowatch|intermedia|intra2net|invalid|ioactive|ironscales|isync|itserver|jellyfish|kcsfa.co|keycaptcha|krvtz|libraesva|link11|localhost|logix|mailborder.co|mailchannels|mailcleaner|mailcontrol|mailinator|mailroute|mailsift|mailstrainer|mcafee|mdaemon|mimecast|mx-relay|mx1.ik2|mx37\.m..p\.com|mxcomet|mxgate|mxstorm|n-able|n2net|nano-av|netintelligence|network-box|networkboxusa|newnettechnologies|newtonit.co|odysseycs|openwall|opswat|perfectmail|perimeterwatch|plesk|prodaft|proofpoint|proxmox|redcondor|reflexion|retarus|safedns|safeweb|sec-provider|secureage|securence|security|sendio|shield|sicontact|sonicwall|sophos|spamtitan|spfbl|spiceworks|stopsign|supercleanmail|techtarget|titanhq|trellix|trendmicro|trustifi|trustwave|tryton|uni-muenster|usergate|vadesecure|wessexnetworks|zillya|zyxel'
+dangerous_isps  = r'acronis|acros|adlice|alinto|appriver|aspav|atomdata|avanan|avast|barracuda|baseq|bitdefender|broadcom|btitalia|censornet|checkpoint|cisco|cistymail|clean-mailbox|clearswift|closedport|cloudflare|comforte|corvid|crsp|cyren|darktrace|data-mail-group|dmarcly|drweb|duocircle|e-purifier|earthlink-vadesecure|ecsc|eicar|elivescanned|emailsorting|eset|essentials|exchangedefender|fireeye|forcepoint|fortinet|gartner|gatefy|gonkar|group-ib|guard|helpsystems|heluna|hosted-247|iberlayer|indevis|infowatch|intermedia|intra2net|invalid|ioactive|ironscales|isync|itserver|jellyfish|kcsfa.co|keycaptcha|krvtz|libraesva|link11|localhost|logix|mailborder.co|mailchannels|mailcleaner|mailcontrol|mailinator|mailroute|mailsift|mailstrainer|mcafee|mdaemon|mimecast|mx-relay|mx1.ik2|mx37\.m..p\.com|mxcomet|mxgate|mxstorm|n-able|n2net|nano-av|netintelligence|network-box|networkboxusa|newnettechnologies|newtonit.co|odysseycs|openwall|opswat|perfectmail|perimeterwatch|plesk|prodaft|proofpoint|proxmox|redcondor|reflexion|retarus|safedns|safeweb|sec-provider|secureage|securence|security|sendio|shield|sicontact|smxemail|sonicwall|sophos|spamtitan|spfbl|spiceworks|stopsign|supercleanmail|techtarget|titanhq|trellix|trendmicro|trustifi|trustwave|tryton|uni-muenster|usergate|vadesecure|wessexnetworks|zillya|zyxel'
 dangerous_isps2 = r'abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|list|metunet|rbl|research|security|spam|trap|ubl|virtual|virus|vm\d'
 dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
 
@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.30{z}
+          ╙     {b}Validol - Email Validator v23.03.31{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -164,7 +164,7 @@ def is_safe_host(email):
 		for domain in selected_email_providers.split(','):
 			if domain and domain in host:
 				return host
-	email_mx = get_ns_record('mx', host)
+	email_mx = get_ns_record('mx', host).lower()
 	if not email_mx:
 		raise Exception('no <mx> records found for: '+host)
 	if selected_email_providers:
@@ -182,7 +182,7 @@ def is_safe_host(email):
 	email_isp = database.get_isp(email_mx_ip) or ''
 	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_isp.lower()):
 		raise Exception(email_isp)
-	reversename = get_ns_record('ptr', email_mx_ip) or ''
+	reversename = get_ns_record('ptr', email_mx_ip).lower() or ''
 	if re.search(dangerous_isps2, reversename):
 		raise Exception(reversename)
 	email_mx_top_host = get_top_host(email_mx)
