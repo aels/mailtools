@@ -146,10 +146,9 @@ def get_ns_record(name, string):
 		if name == 'mx':
 			return str(resolver_obj.resolve(string, 'mx')[0].exchange)[:-1]
 	except Exception as e:
-		msg = 'dns resolver overloaded. switching...'
 		reason = 'solution lifetime expired'
-		return reason in str(e) and (results_que.put((False, msg, '')) or switch_dns_nameserver() and get_ns_record(name, string))
-		# return reason in str(e) and (results_que.put((False, orange(msg), '')) or time.sleep(random.randint(1,10)) or get_ns_record(name, string))
+		msg = 'dns resolver overloaded. switching...'
+		return results_que.put((False, msg, '')) or switch_dns_nameserver() and get_ns_record(name, string) if reason in str(e) else ''
 
 def is_safe_host(email):
 	global dangerous_zones, dangerous_isps, dangerous_isps2, dangerous_title, goods_cache, bads_cache, database, whitelisted_mx, selected_email_providers
@@ -182,7 +181,7 @@ def is_safe_host(email):
 	email_isp = database.get_isp(email_mx_ip) or ''
 	if re.search(dangerous_isps+r'|'+dangerous_isps2, email_isp.lower()):
 		raise Exception(email_isp)
-	reversename = get_ns_record('ptr', email_mx_ip).lower() or ''
+	reversename = get_ns_record('ptr', email_mx_ip).lower()
 	if re.search(dangerous_isps2, reversename):
 		raise Exception(reversename)
 	email_mx_top_host = get_top_host(email_mx)
