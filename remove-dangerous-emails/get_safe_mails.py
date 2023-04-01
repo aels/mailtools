@@ -364,4 +364,4 @@ with open(list_filename, 'r', encoding='utf-8-sig', errors='ignore') as fp:
 			break
 		time.sleep(0.08)
 	time.sleep(1)
-	input('\r\n'+okk+green('well done.')+' press [ Enter ] to exit')
+	print('\r\n'+okk+green('well done.')+' bye.')
