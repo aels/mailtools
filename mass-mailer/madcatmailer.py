@@ -48,7 +48,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.03.30{z}
+          ╙     {b}MadCat Mailer v23.04.01{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -257,7 +257,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 			if not total_sent%100:
 				config['attachment_files_data'][attachment_file_path] = read(attachment_file_path)
 			attachment_body = config['attachment_files_data'][attachment_file_path]
-		attachment_filename = expand_macros(attachment_file_path.split('/')[-1], subs)
+		attachment_filename = expand_macros(re.sub(r'=', '/', attachment_file_path).split('/')[-1], subs)
 		attachment_body = expand_macros(attachment_body, subs)
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
