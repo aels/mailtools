@@ -14,6 +14,8 @@ if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
 sys.stdout.reconfigure(encoding='utf-8')
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
+# additional dns servers
+custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
@@ -470,7 +472,7 @@ mem_usage = 0
 cpu_usage = 0
 net_usage = 0
 min_threads = 50
-max_threads = debuglevel or rage_mode and 600 or 300
+max_threads = debuglevel or rage_mode and 600 or 100
 threads_counter = 0
 no_jobs_left = False
 loop_times = []
@@ -480,6 +482,8 @@ progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = dns.resolver.Resolver()
+resolver_obj.nameservers = custom_dns_nameservers
+resolver_obj.rotate = True
 domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
