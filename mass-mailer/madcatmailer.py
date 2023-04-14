@@ -603,3 +603,4 @@ while True:
 			time.sleep(1)
 			exit('\n'+wl+err+f'smtp list exhausted. all tasks terminated.\a')
 	time.sleep(0.05)
+
