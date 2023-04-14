@@ -23,7 +23,6 @@ no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|inter
 glock_json_response_url = 'https://spamtest.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
 glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
-text_file_extensions = 'txt|html|mhtml|htm|mhtm|xhtml|svg'.split('|')
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -135,11 +134,16 @@ def sec_to_min(i):
 def normalize_delimiters(s):
 	return re.sub(r'[:,\t|]+', ';', re.sub(r'"+', '', s))
 
-def read(path, mode='r'):
-	return os.path.isfile(path) and open(path, mode, encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
+def read(path, enc='utf-8-sig'):
+	return os.path.isfile(path) and open(path, 'r', encoding=enc, errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
 
 def read_lines(path):
 	return read(path).splitlines()
+
+def rand_file_from_dir(path):
+	path = re.sub(r'//', '/', path+'/')
+	filenames = [file for file in os.listdir(path) if is_file_or_url(path+file)]
+	return path+random.choice(filenames) if len(filenames) else ''
 
 def is_file_or_url(path):
 	return os.path.isfile(path) or re.search(r'^https?://', path)
@@ -208,6 +212,18 @@ def get_read_receipt_headers(mail_from):
 	receipt_headers+= f'X-Confirm-reading-to: {mail_from}\n'
 	return receipt_headers
 
+def create_attachment(file_path, subs):
+	if os.path.isdir(file_path):
+		file_path = rand_file_from_dir(file_path)
+	if is_file_or_url(file_path):
+		attachment_filename = expand_macros(re.sub(r'=', '/', file_path).split('/')[-1], subs)
+		attachment_body = expand_macros(read(file_path, 'ascii'), subs)
+		attachment = MIMEApplication(attachment_body)
+		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
+		return attachment
+	else:
+		return ''
+
 def str_ljust(string, length):
 	is_inside_tag = False
 	shift = 0
@@ -235,7 +251,7 @@ def smtp_connect(smtp_server, port, user, password):
 	return server_obj
 
 def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
-	global config, no_read_receipt_for, total_sent, text_file_extensions
+	global config, no_read_receipt_for, total_sent
 	mail_redirect_url = random.choice(config['redirects_list'])
 	subs = [mail_str, smtp_user, mail_redirect_url] + get_random_name()
 	mail_to = extract_email(mail_str)
@@ -249,30 +265,21 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	message['From'] = smtp_from if is_valid_email(mail_from) else mail_from.split(' <')[0]+f' <{smtp_from}>'
 	message['Subject'] = mail_subject
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
-	for attachment_file_path in config['attachment_files_data']:
-		if not is_file_or_url(attachment_file_path):
-			attachment_filenames = [file for file in os.listdir(attachment_file_path) if is_file_or_url(attachment_file_path+file)]
-			attachment_file_path = attachment_file_path+random.choice(attachment_filenames)
-			attachment_body = read(attachment_file_path, 'rb')
-		else:
-			if not total_sent%100:
-				config['attachment_files_data'][attachment_file_path] = read(attachment_file_path, 'rb')
-			attachment_body = config['attachment_files_data'][attachment_file_path]
-		attachment_filename = expand_macros(re.sub(r'=', '/', attachment_file_path).split('/')[-1], subs)
-		attachment_body = expand_macros(attachment_body, subs) if attachment_filename.split('.')[-1] in text_file_extensions else attachment_body
-		attachment = MIMEApplication(attachment_body)
-		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
+	for attachment_file_path in config['attachment_files'].split(','):
+		attachment = create_attachment(attachment_file_path, subs)
 		message.attach(attachment)
 	headers = 'Return-Path: '+smtp_from+'\n'
 	headers+= 'Reply-To: '+mail_reply_to+'\n'
-	headers+= 'X-Priority: 1\n'
-	headers+= 'X-MSmail-Priority: High\n'
+	if config['add_high_priority']:
+		headers+= 'X-Priority: 1\n'
+		headers+= 'X-MSmail-Priority: High\n'
 	headers+= 'X-Source-IP: 127.0.0.1\n'
 	headers+= 'X-Sender-IP: 127.0.0.1\n'
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'Received: '+' '.join(get_random_name())+'\n'
-	headers+= get_read_receipt_headers(smtp_from) if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()) else ''
+	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
+		headers += get_read_receipt_headers(smtp_from)
 	message_raw = headers + message.as_string()
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
@@ -401,7 +408,8 @@ def load_config():
 		'mail_body': '',
 		'attachment_files': '',
 		'redirects_file': '',
-		'add_read_receipts': ''
+		'add_read_receipts': '',
+		'add_high_priority': '',
 	})
 	if len(sys.argv) == 2:
 		config['config_file'] = sys.argv[1] if is_file_or_url(sys.argv[1]) else exit(err+'wrong config path or filename: it must be like '+bold('<...>.config'))
@@ -417,7 +425,6 @@ def load_config():
 		exit(err+'malformed config file')
 	for key, value in temp_config.items(head_name):
 		config[key] = value
-	config['attachment_files_data'] = {}
 	if not is_file_or_url(config['smtps_list_file']):
 		exit(err+'cannot open smtps list file. does it exist?')
 	else:
@@ -437,16 +444,9 @@ def load_config():
 	config['mail_reply_to'] = config['mail_reply_to'] or config['mail_from']
 	config['mail_subject'] or exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
 	config['mail_body'] or exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
-	for attachment_file_path in config['attachment_files'].split(','):
-		if os.path.isdir(attachment_file_path):
-			attachment_file_path = re.sub(r'//', '/', attachment_file_path+'/')
-			if not len([file for file in os.listdir(attachment_file_path) if is_file_or_url(attachment_file_path+file)]):
-				exit(err+'no files in attachment\'s folder')
-			config['attachment_files_data'][attachment_file_path] = ''
-		elif is_file_or_url(attachment_file_path):
-			config['attachment_files_data'][attachment_file_path] = ''
-		else:
-			attachment_file_path and exit(err+'one of attachment files seems does not exists')
+	for file_path in config['attachment_files'].split(','):
+		if not is_file_or_url(file_path) and not (os.path.isdir(file_path) and rand_file_from_dir(file_path)):
+			file_path and exit(err+file_path+' file not found or directory is empty')
 	if config['redirects_file'] and not is_file_or_url(config['redirects_file']):
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
@@ -603,4 +603,3 @@ while True:
 			time.sleep(1)
 			exit('\n'+wl+err+f'smtp list exhausted. all tasks terminated.\a')
 	time.sleep(0.05)
-
