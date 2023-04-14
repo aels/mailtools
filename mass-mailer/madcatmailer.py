@@ -23,6 +23,7 @@ no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|inter
 glock_json_response_url = 'https://spamtest.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
 glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
+text_file_extensions = 'txt|html|mhtml|htm|mhtm|xhtml|svg'.split('|')
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -48,7 +49,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.04.01{z}
+          ╙     {b}MadCat Mailer v23.04.14{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -234,7 +235,7 @@ def smtp_connect(smtp_server, port, user, password):
 	return server_obj
 
 def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
-	global config, no_read_receipt_for, total_sent
+	global config, no_read_receipt_for, total_sent, text_file_extensions
 	mail_redirect_url = random.choice(config['redirects_list'])
 	subs = [mail_str, smtp_user, mail_redirect_url] + get_random_name()
 	mail_to = extract_email(mail_str)
@@ -258,7 +259,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 				config['attachment_files_data'][attachment_file_path] = read(attachment_file_path)
 			attachment_body = config['attachment_files_data'][attachment_file_path]
 		attachment_filename = expand_macros(re.sub(r'=', '/', attachment_file_path).split('/')[-1], subs)
-		attachment_body = expand_macros(attachment_body, subs)
+		attachment_body = expand_macros(attachment_body, subs) if attachment_filename.split('.')[-1] in text_file_extensions else attachment_body
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
 		message.attach(attachment)
