@@ -135,8 +135,8 @@ def sec_to_min(i):
 def normalize_delimiters(s):
 	return re.sub(r'[:,\t|]+', ';', re.sub(r'"+', '', s))
 
-def read(path):
-	return os.path.isfile(path) and open(path, 'r', encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
+def read(path, mode='r'):
+	return os.path.isfile(path) and open(path, mode, encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
 
 def read_lines(path):
 	return read(path).splitlines()
@@ -253,10 +253,10 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 		if not is_file_or_url(attachment_file_path):
 			attachment_filenames = [file for file in os.listdir(attachment_file_path) if is_file_or_url(attachment_file_path+file)]
 			attachment_file_path = attachment_file_path+random.choice(attachment_filenames)
-			attachment_body = read(attachment_file_path)
+			attachment_body = read(attachment_file_path, 'rb')
 		else:
 			if not total_sent%100:
-				config['attachment_files_data'][attachment_file_path] = read(attachment_file_path)
+				config['attachment_files_data'][attachment_file_path] = read(attachment_file_path, 'rb')
 			attachment_body = config['attachment_files_data'][attachment_file_path]
 		attachment_filename = expand_macros(re.sub(r'=', '/', attachment_file_path).split('/')[-1], subs)
 		attachment_body = expand_macros(attachment_body, subs) if attachment_filename.split('.')[-1] in text_file_extensions else attachment_body
