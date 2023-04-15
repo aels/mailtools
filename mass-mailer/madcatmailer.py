@@ -23,6 +23,7 @@ no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|inter
 glock_json_response_url = 'https://spamtest.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
 glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
+text_extensions = 'txt|html|htm|mhtml|mht|xhtml|svg'.split('|')
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -48,7 +49,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.04.14{z}
+          ╙     {b}MadCat Mailer v23.04.15{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/freebug
@@ -134,16 +135,14 @@ def sec_to_min(i):
 def normalize_delimiters(s):
 	return re.sub(r'[:,\t|]+', ';', re.sub(r'"+', '', s))
 
-def read(path, enc='utf-8-sig'):
-	if os.path.isfile(path):
-		return open(path, 'r', encoding=enc, errors='ignore').read()
-	elif re.search(r'^https?://', path):
-		return requests.get(path, timeout=5).text
-	else:
-		return ''
+def read(path):
+	return os.path.isfile(path) and open(path, 'r', encoding='utf-8-sig', errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
 
 def read_lines(path):
 	return read(path).splitlines()
+
+def read_bytes(path):
+	return os.path.isfile(path) and open(path, 'rb').read() or ''
 
 def rand_file_from_dir(path):
 	path = re.sub(r'//', '/', path+'/')
@@ -219,11 +218,13 @@ def get_read_receipt_headers(mail_from):
 	return receipt_headers
 
 def create_attachment(file_path, subs):
+	global text_extensions
 	if os.path.isdir(file_path):
 		file_path = rand_file_from_dir(file_path)
 	if is_file_or_url(file_path):
 		attachment_filename = expand_macros(re.sub(r'=', '/', file_path).split('/')[-1], subs)
-		attachment_body = expand_macros(read(file_path), subs)
+		attachment_ext = file_path.split('.')[-1]
+		attachment_body = expand_macros(read(file_path), subs) if attachment_ext in text_extensions else read_bytes(file_path)
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
 		return attachment
@@ -307,15 +308,15 @@ def smtp_testmail():
 		except:
 			exit(wl+err+'sorry, no valid smtp servers left. bye.')
 		smtp_server, port, smtp_user, password = smtp_str.split('|')
-		try:
-			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
-			smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
-			test_mail_sent = True
-		except Exception as e:
-			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
-			smtp_errors_que.put((smtp_str, msg, 0))
-			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
-			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
+		# try:
+		server_obj = smtp_connect(smtp_server, port, smtp_user, password)
+		smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
+		test_mail_sent = True
+		# except Exception as e:
+		# 	msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
+		# 	smtp_errors_que.put((smtp_str, msg, 0))
+		# 	smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
+		# 	print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
 	return True
 
 def test_inbox():
