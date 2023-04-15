@@ -272,7 +272,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	message['From'] = smtp_from if is_valid_email(mail_from) else mail_from.split(' <')[0]+f' <{smtp_from}>'
 	message['Subject'] = mail_subject
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
-	for attachment_file_path in config['attachment_files'].split(','):
+	for attachment_file_path in config['attachment_files']:
 		attachment = create_attachment(attachment_file_path, subs)
 		message.attach(attachment)
 	headers = 'Return-Path: '+smtp_from+'\n'
@@ -308,15 +308,15 @@ def smtp_testmail():
 		except:
 			exit(wl+err+'sorry, no valid smtp servers left. bye.')
 		smtp_server, port, smtp_user, password = smtp_str.split('|')
-		# try:
-		server_obj = smtp_connect(smtp_server, port, smtp_user, password)
-		smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
-		test_mail_sent = True
-		# except Exception as e:
-		# 	msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
-		# 	smtp_errors_que.put((smtp_str, msg, 0))
-		# 	smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
-		# 	print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
+		try:
+			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
+			smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
+			test_mail_sent = True
+		except Exception as e:
+			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
+			smtp_errors_que.put((smtp_str, msg, 0))
+			smtp_str in smtp_pool_array and smtp_pool_array.remove(smtp_str)
+			print(wl+err+smtp_server+' ('+smtp_user+'): '+red(msg))
 	return True
 
 def test_inbox():
@@ -451,9 +451,10 @@ def load_config():
 	config['mail_reply_to'] = config['mail_reply_to'] or config['mail_from']
 	config['mail_subject'] or exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
 	config['mail_body'] or exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
-	for file_path in config['attachment_files'].split(','):
+	config['attachment_files'] = config['attachment_files'].split(',') if config['attachment_files'] else []
+	for file_path in config['attachment_files']:
 		if not is_file_or_url(file_path) and not (os.path.isdir(file_path) and rand_file_from_dir(file_path)):
-			file_path and exit(err+file_path+' file not found or directory is empty')
+			exit(err+file_path+' file not found or directory is empty')
 	if config['redirects_file'] and not is_file_or_url(config['redirects_file']):
 		exit(err+'please put the path to the file with redirects into '+bold('redirects_file')+' parameter')
 	else:
