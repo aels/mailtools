@@ -135,7 +135,12 @@ def normalize_delimiters(s):
 	return re.sub(r'[:,\t|]+', ';', re.sub(r'"+', '', s))
 
 def read(path, enc='utf-8-sig'):
-	return os.path.isfile(path) and open(path, 'r', encoding=enc, errors='ignore').read() or re.search(r'^https?://', path) and requests.get(path, timeout=5).text or ''
+	if os.path.isfile(path):
+		return open(path, 'r', encoding=enc, errors='ignore').read()
+	elif re.search(r'^https?://', path):
+		return requests.get(path, timeout=5).text
+	else:
+		return ''
 
 def read_lines(path):
 	return read(path).splitlines()
@@ -194,13 +199,14 @@ def expand_macros(text, subs):
 		rand_Fname.lower(),
 		rand_Lname.lower()
 	]
-	for i, column in enumerate(mail_str.split(';')):
-		text = text.replace('{{'+str(i+1)+'}}', column)
-	for i, placeholder in enumerate(placeholders):
-		text = text.replace('{{'+placeholder+'}}', replacements[i])
-	macros = re.findall(r'(\{\{.*?\}\})', text)
-	for macro in macros:
-		text = text.replace(macro, random.choice(macro[2:-2].split('|')))
+	if not '\x00' in text:
+		for i, column in enumerate(mail_str.split(';')):
+			text = text.replace('{{'+str(i+1)+'}}', column)
+		for i, placeholder in enumerate(placeholders):
+			text = text.replace('{{'+placeholder+'}}', replacements[i])
+		macros = re.findall(r'(\{\{.*?\}\})', text)
+		for macro in macros:
+			text = text.replace(macro, random.choice(macro[2:-2].split('|')))
 	return text
 
 def get_read_receipt_headers(mail_from):
@@ -217,7 +223,7 @@ def create_attachment(file_path, subs):
 		file_path = rand_file_from_dir(file_path)
 	if is_file_or_url(file_path):
 		attachment_filename = expand_macros(re.sub(r'=', '/', file_path).split('/')[-1], subs)
-		attachment_body = expand_macros(read(file_path, 'ascii'), subs)
+		attachment_body = expand_macros(read(file_path), subs)
 		attachment = MIMEApplication(attachment_body)
 		attachment.add_header('content-disposition', 'attachment', filename=attachment_filename)
 		return attachment
