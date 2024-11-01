@@ -247,8 +247,8 @@ def wc_count(filename, lines=0):
         if not buf:
             break
         lines += buf.count(b'\n')
-
     return lines + 1
+
 def is_ignored_host(mail):
 	global exclude_mail_hosts
 	return len([ignored_str for ignored_str in exclude_mail_hosts.split(',') if ignored_str in mail.split('@')[-1]])>0
