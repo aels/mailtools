@@ -45,7 +45,7 @@ def show_banner():
           ╙     {b}MadCat SMTP Checker & Cracker v23.03.30{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
-                https://t.me/freebug
+                https://t.me/IamLavander
 	"""
 	for line in banner.splitlines():
 		print(line)
