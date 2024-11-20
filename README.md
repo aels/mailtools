@@ -12,9 +12,13 @@ Most likely there you will find help and new business partners. [Welcome aboard!
 - [ ] InboxStat - gives you statistics about list of inboxes by emails and urls. Also accepts search query, if you are looking for something specific. In development.
 - [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
 - [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
+# Full spamming guide from Aels (me). How to use this tools. Now free.
+- [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 1](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-02-03)
+- [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 2](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-CHast-2-02-22)
+- [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 3](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-CHast-3-02-22)
+
 # Educational materials
 - [Getting rid of Google Safebrowsing red screen once and forever. Step-by-step.](https://telegra.ph/Getting-rid-of-Google-Safebrowsing-red-screen-once-and-forever-Step-by-step-02-18)
-- [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук.](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-02-03)
 
 ### Don't be rude
 I'm writing all these tools as part of my workflow, and giving them for free not cuz they are free, but cuz they works and do their job very very well.
