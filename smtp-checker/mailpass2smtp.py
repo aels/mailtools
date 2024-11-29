@@ -42,7 +42,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v23.03.30{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v24.11.29{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -335,10 +335,10 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 			s.close()
 			return True
 		headers_arr = [
-			'From: MadCat checker <%s>'%smtp_user,
+			'From: test <%s>'%smtp_user,
 			'Resent-From: admin@localhost',
 			'To: '+verify_email,
-			'Subject: new SMTP from MadCat checker',
+			'Subject: smtp test',
 			'Return-Path: '+smtp_user,
 			'Reply-To: '+smtp_user,
 			'X-Priority: 1',
