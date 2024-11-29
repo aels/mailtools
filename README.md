@@ -3,8 +3,9 @@
 <img alt="image" src="https://camo.githubusercontent.com/a93ed72a61f2a4bef41d29a589162260f7458fe20336407707b045b4c6891391/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f506f73697469766974792d494e2d677265656e"> <img alt="image" src="https://camo.githubusercontent.com/694c89e5757aa2a25fa9fd02b7cd7316cd138e44f5265f321561b50c54271b95/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f53636f72652d2545322539382538352545322539382538352545322539382538352545322539382538352545322539382538352d677265656e"> <img alt="image" src="https://camo.githubusercontent.com/bd8193be1af190ea7fb0d1253247b7668d20870382eab004854d430cffb210c6/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4c616e67756167652d507974686f6e2d626c7565"> <img src="https://hits.sh/github.com/aels/mailtools.svg" alt="visits">
 
 # Community
-XSS.is (Damagelab reborn) is one of the oldest underground forums with skilled and friendly members.
+[XSS.is](https://bit.ly/3XN8g87#https://xss.is/forums/70/) (Damagelab reborn) is one of the oldest underground forums with skilled and friendly members.
 Most likely there you will find help and new business partners. [Welcome aboard!](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
+[Spamhaus 📧 (https://t.me/spamcops)](https://t.me/spamcops) - our friendly telegram chat, where you can find help from many same-minded people, new friends and partners. It feels like home there.
 # Mail Tools
 - [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid smtp credentials.
 - [x] [Validol - email validator/debouncer that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
