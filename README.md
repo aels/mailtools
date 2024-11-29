@@ -5,8 +5,7 @@
 # Community
 [XSS.is](https://bit.ly/3XN8g87#https://xss.is/forums/70/) (Damagelab reborn) is one of the oldest underground forums with skilled and friendly members.
 Most likely there you will find help and new business partners. [Welcome aboard!](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
-
-[Spamhaus 📧 (https://t.me/spamcops)](https://t.me/spamcops) - our friendly telegram chat, where you can find help from many same-minded people, new friends and partners. It feels like home there.
+Spamhaus 📧 [https://t.me/spamcops](https://t.me/spamcops) - our friendly telegram chat, where you can find help from many same-minded people, new friends and partners. It feels like home there.
 # Mail Tools
 - [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid smtp credentials.
 - [x] [Validol - email validator/debouncer that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
