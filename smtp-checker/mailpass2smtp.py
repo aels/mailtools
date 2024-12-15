@@ -15,7 +15,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 # mail providers, where SMTP access is desabled by default
 bad_mail_servers = 'gmail,googlemail,google,mail.ru,yahoo,qq.com'
 # additional dns servers
-custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
+custom_dns_nameservers = '1.1.1.2,1.0.0.2,208.67.222.222,208.67.220.220,1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4,9.9.9.9,149.112.112.112,185.228.168.9,185.228.169.9,76.76.19.19,76.223.122.150,94.140.14.14,94.140.15.15,84.200.69.80,84.200.70.40,8.26.56.26,8.20.247.20,205.171.3.65,205.171.2.65,195.46.39.39,195.46.39.40,159.89.120.99,134.195.4.2,216.146.35.35,216.146.36.36,45.33.97.5,37.235.1.177,77.88.8.8,77.88.8.1,91.239.100.100,89.233.43.71,80.80.80.80,80.80.81.81,74.82.42.42,,64.6.64.6,64.6.65.6,45.77.165.194,45.32.36.36'.split(',')
+# more dns servers url
+dns_list_url = 'https://public-dns.info/nameservers.txt'
 # expanded lists of SMTP endpoints, where we can knock
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
@@ -92,6 +94,12 @@ def tune_network():
 		except Exception as e:
 			print(wrn+'failed to set rlimit_nofile:   '+str(e))
 
+def switch_dns_nameserver():
+	global resolver_obj, custom_dns_nameservers
+	resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
+	resolver_obj.rotate = True
+	return True
+
 def check_ipv4():
 	try:
 		socket.has_ipv4 = read('https://api.ipify.org')
@@ -129,6 +137,14 @@ def load_smtp_configs():
 			domain_configs_cache[line[0]] = (line[1].split(','), line[2])
 	except Exception as e:
 		print(err+'failed to load SMTP configs. '+str(e))
+		print(err+'performance will be affected.')
+
+def load_dns_servers():
+	global custom_dns_nameservers, dns_list_url
+	try:
+		custom_dns_nameservers = requests.get(dns_list_url, timeout=5).text.splitlines()
+	except Exception as e:
+		print(err+'failed to load additional DNS servers. '+str(e))
 		print(err+'performance will be affected.')
 
 def first(a):
@@ -173,8 +189,13 @@ def get_rand_ip_of_host(host):
 	except:
 		try:
 			ip_array = resolver_obj.resolve(host, 'a')
-		except:
-			raise Exception('No A record found for '+host)
+		except Exception as e:
+			reason = 'solution lifetime expired'
+			msg = 'dns resolver overloaded. switching...'
+			if reason in str(e):
+				return switch_dns_nameserver() and get_rand_ip_of_host(host)
+			else:
+				raise Exception('No A record found for '+host+' ('+str(e).lower()+')')
 	ip = str(random.choice(ip_array))
 	debug('get ip: '+ip)
 	return ip
@@ -198,8 +219,13 @@ def guess_smtp_server(domain):
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
 		domains_arr += [mx_domain]
-	except:
-		raise Exception('no MX records found for: '+domain)
+	except Exception as e:
+		reason = 'solution lifetime expired'
+		msg = 'dns resolver overloaded. switching...'
+		if reason in str(e):
+			return switch_dns_nameserver() and guess_smtp_server(domain)
+		else:
+			raise Exception('no MX records found for: '+domain)
 	if is_ignored_host(mx_domain) or re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
 		raise Exception(white('skipping domain: '+mx_domain+' (for '+domain+')',2))
 	if re.search(r'protection\.outlook\.com$', mx_domain):
@@ -492,12 +518,12 @@ progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = dns.resolver.Resolver()
-resolver_obj.nameservers = custom_dns_nameservers
-resolver_obj.rotate = True
 domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
 load_smtp_configs()
+# print(inf+'loading DNS servers...'+up)
+# load_dns_servers()
 print(wl+okk+'loaded SMTP configs:           '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
