@@ -49,7 +49,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v23.05.24{z}
+          ╙     {b}MadCat Mailer v24.12.15{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -108,14 +108,20 @@ def now():
 	return datetime.datetime.now().strftime('[ %Y-%m-%d %H:%M:%S ]')
 
 def check_ipv4():
-	print(inf+'checking ipv4 address in blacklists...'+up)
 	try:
 		socket.has_ipv4 = read('https://api.ipify.org')
-		socket.ipv4_blacklist = re.findall(r'"name":"([^"]+)","listed":true', read('https://addon.dnslytics.net/ipv4info/v1/'+socket.has_ipv4))
+	except:
+		socket.has_ipv4 = red('error getting ip')
+
+def check_ipv4_blacklists():
+	print(inf+'checking ipv4 address in blacklists...'+up)
+	try:
+		mxtoolbox_url = f'https://mxtoolbox.com/api/v1/Lookup?command=blacklist&argument={socket.has_ipv4}&resultIndex=5&disableRhsbl=true&format=2'
+		socket.ipv4_blacklist = requests.get(mxtoolbox_url, headers={'tempauthorization':'27eea1cd-e644-4b7b-bebe-38010f55dab3'}, timeout=15).text
+		socket.ipv4_blacklist = re.findall(r'LISTED</td><td class=[^>]+><span class=[^>]+>([^<]+)</span>', socket.ipv4_blacklist)
 		socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist)) if socket.ipv4_blacklist else False
 	except:
-		socket.has_ipv4 = False
-		socket.ipv4_blacklist = False
+		socket.ipv4_blacklist = red('blacklist check error')
 
 def check_ipv6():
 	try:
@@ -570,6 +576,7 @@ inbox_test_id = ''.join(random.choice(string.ascii_lowercase+string.digits) for 
 show_banner()
 tune_network()
 check_ipv4()
+check_ipv4_blacklists()
 check_ipv6()
 load_config()
 fill_mail_queue()
