@@ -290,6 +290,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Sender-IP: 127.0.0.1\n'
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	headers+= 'Date: '+formatdate(localtime=True)+'\n'
 	headers+= 'Received: '+' '.join(get_random_name())+'\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
 		headers += get_read_receipt_headers(smtp_from)
