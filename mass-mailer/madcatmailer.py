@@ -5,6 +5,7 @@ import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email.utils import formatdate
 
 try:
 	import psutil, requests, dns.resolver
