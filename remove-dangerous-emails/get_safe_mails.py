@@ -23,6 +23,7 @@ dangerous_isps2 = r'abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|li
 dangerous_title = r'<title>[^<]*(security|spam|filter|antivirus)[^<]*<'
 
 resolver_obj = dns.resolver.Resolver()
+resolver_obj.rotate = True
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -156,7 +157,7 @@ def get_ns_record(name, string):
 			return str(resolver_obj.resolve(string, 'mx')[0].exchange)[:-1]
 	except Exception as e:
 		reason = 'solution lifetime expired'
-		msg = 'dns resolver overloaded. switching...'
+		msg = str(resolver_obj.nameservers[0])+' dns resolver overloaded. switching...'
 		return results_que.put((False, msg, '')) or switch_dns_nameserver() and get_ns_record(name, string) if reason in str(e) else ''
 
 def is_safe_host(email):
@@ -349,8 +350,8 @@ speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
 
-print(inf+'loading DNS servers...'+up)
-load_dns_servers()
+# print(inf+'loading DNS servers...'+up)
+# load_dns_servers()
 print(inf+'source file:                   '+list_filename)
 print(inf+'total lines to procceed:       '+num(total_lines))
 print(inf+'desired email providers:       '+(selected_email_providers or 'all'))
