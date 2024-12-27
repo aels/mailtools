@@ -11,7 +11,8 @@ except ImportError:
 if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
 	exit('\033[0;31mpython 3.9 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-custom_dns_nameservers = '1.0.0.1,1.1.1.1,8.8.4.4,8.8.8.8,8.20.247.20,8.26.56.26,9.9.9.9,9.9.9.10,64.6.64.6,74.82.42.42,77.88.8.1,77.88.8.8,84.200.69.80,84.200.70.40,149.112.112.9,149.112.112.11,149.112.112.13,149.112.112.112,195.46.39.39,204.194.232.200,208.67.220.220,208.67.222.222'.split(',')
+custom_dns_nameservers = '1.1.1.2,1.0.0.2,208.67.222.222,208.67.220.220,1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4,9.9.9.9,149.112.112.112,185.228.168.9,185.228.169.9,76.76.19.19,76.223.122.150,94.140.14.14,94.140.15.15,84.200.69.80,84.200.70.40,8.26.56.26,8.20.247.20,205.171.3.65,205.171.2.65,195.46.39.39,195.46.39.40,159.89.120.99,134.195.4.2,216.146.35.35,216.146.36.36,45.33.97.5,37.235.1.177,77.88.8.8,77.88.8.1,91.239.100.100,89.233.43.71,80.80.80.80,80.80.81.81,74.82.42.42,,64.6.64.6,64.6.65.6,45.77.165.194,45.32.36.36'.split(',')
+dns_list_url = 'https://public-dns.info/nameservers.txt'
 ip2location_url = 'https://github.com/aels/mailtools/releases/download/ip2location/ip2location.bin'
 ip2location_path = tempfile.gettempdir()+'/ip2location.bin'
 whitelisted_mx  = r'(google\.com|outlook\.com|googlemail\.com|qq\.com|improvmx\.com|registrar-servers\.com|emailsrvr\.com|secureserver\.net|yandex\.net|amazonaws\.com|zoho\.com|messagingengine\.com|mailgun\.org|netease\.com|yandex\.ru|ovh\.net|gandi\.net|zoho\.eu|mxhichina\.com|mail\.ru|sbnation\.com|beget\.com|securemx\.jp|hostedemail\.com|arsmtp\.com|yahoodns\.net|protonmail\.ch|pair\.com|ne\.jp|1and1\.com|ispgateway\.de|dreamhost\.com|amazon\.com|dfn\.de|aliyun\.com|163\.com|mailanyone\.net|suremail\.cn|privateemail\.com|one\.com|espmailservice\.net|nic\.in|kasserver\.com|oxcs\.net|everyone\.net|above\.com|timeweb\.ru|serverdata\.net|forwardemail\.net|bund\.de|mailhostbox\.com|kundenserver\.de|ionos\.com|expedia\.com|icoremail\.net|hostedmxserver\.com|263xmail\.com|infomaniak\.ch|hostinger\.com|automattic\.com|alibaba-inc\.com|feishu\.cn|cnhi\.com|h-email\.net|zohomail\.com|outlook\.cn|easydns\.com|cscdns\.net|zoho\.in|name\.com|migadu\.com|mailbox\.org|untd\.com|stackmail\.com|kagoya\.net|forwardmx\.io|carrierzone\.com|ucoz\.net|renr\.es|redhat\.com|hotmail\.com|hostinger\.in|fusemail\.net|disney\.com|bell\.ca)$'
@@ -46,7 +47,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}Validol - Email Validator v23.03.31{z}
+          ╙     {b}Validol - Email Validator v24.12.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -106,6 +107,14 @@ def check_database_exists():
 		except Exception as e:
 			exit(wl+err+'cannot download ip2location.bin: '+red(e))
 	print(wl+okk+'ip2location.bin path:          '+ip2location_path)
+
+def load_dns_servers():
+	global custom_dns_nameservers, dns_list_url
+	try:
+		custom_dns_nameservers = requests.get(dns_list_url, timeout=5).text.splitlines()
+	except Exception as e:
+		print(err+'failed to load additional DNS servers. '+str(e))
+		print(err+'performance will be affected.')
 
 def first(a):
 	return (a or [''])[0]
@@ -303,6 +312,7 @@ signal.signal(signal.SIGINT, quit)
 show_banner()
 tune_network()
 check_database_exists()
+
 try:
 	help_message = f'usage:\n    python3 <(curl -fskSL bit.ly/getsafemails) '+bold('list_with_emails.txt')+' [selected,email,providers]'
 	list_filename = sys.argv[1] if len(sys.argv)>1 and os.path.isfile(sys.argv[1]) else ''
@@ -339,6 +349,8 @@ speed = []
 total_lines = wc_count(list_filename)
 database = IP2Location.IP2Location(ip2location_path, 'SHARED_MEMORY')
 
+print(inf+'loading DNS servers...'+up)
+load_dns_servers()
 print(inf+'source file:                   '+list_filename)
 print(inf+'total lines to procceed:       '+num(total_lines))
 print(inf+'desired email providers:       '+(selected_email_providers or 'all'))
