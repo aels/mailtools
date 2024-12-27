@@ -44,7 +44,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v24.12.15{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v24.12.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -179,7 +179,7 @@ def is_listening(ip, port):
 		return False
 
 def get_rand_ip_of_host(host):
-	global resolver_obj
+	global resolver_obj, results_que
 	try:
 		host = resolver_obj.resolve(host, 'cname')[0].target
 	except:
@@ -190,9 +190,8 @@ def get_rand_ip_of_host(host):
 		try:
 			ip_array = resolver_obj.resolve(host, 'a')
 		except Exception as e:
-			reason = 'solution lifetime expired'
-			msg = 'dns resolver overloaded. switching...'
-			if reason in str(e):
+			if 'solution lifetime expired' in str(e):
+				results_que.put(orange('dns resolver overloaded. switching...',1))
 				return switch_dns_nameserver() and get_rand_ip_of_host(host)
 			else:
 				raise Exception('No A record found for '+host+' ('+str(e).lower()+')')
@@ -214,15 +213,14 @@ def get_alive_neighbor(ip, port):
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
 def guess_smtp_server(domain):
-	global default_login_template, resolver_obj, domain_configs_cache, dangerous_domains
+	global default_login_template, resolver_obj, domain_configs_cache, dangerous_domains, results_que
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
 		domains_arr += [mx_domain]
 	except Exception as e:
-		reason = 'solution lifetime expired'
-		msg = 'dns resolver overloaded. switching...'
-		if reason in str(e):
+		if 'solution lifetime expired' in str(e):
+			results_que.put(orange('dns resolver overloaded. switching...',1))
 			return switch_dns_nameserver() and guess_smtp_server(domain)
 		else:
 			raise Exception('no MX records found for: '+domain)
@@ -238,14 +236,14 @@ def guess_smtp_server(domain):
 		for port in [2525, 587, 465, 25]:
 			debug(f'trying {host}, {ip}:{port}')
 			if is_listening(ip, port):
-					return ([host+':'+str(port)], default_login_template)
+				return ([host+':'+str(port)], default_login_template)
 	raise Exception('no connection details found for '+domain)
 
 def get_smtp_config(domain):
 	global domain_configs_cache, default_login_template
 	domain = domain.lower()
 	if not domain in domain_configs_cache:
-		domain_configs_cache[domain] = ['', default_login_template]
+		domain_configs_cache[domain] = ('', default_login_template)
 		domain_configs_cache[domain] = guess_smtp_server(domain)
 	return domain_configs_cache[domain]
 
@@ -518,13 +516,15 @@ progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
 resolver_obj = dns.resolver.Resolver()
+resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
+resolver_obj.rotate = True
 domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
 load_smtp_configs()
-# print(inf+'loading DNS servers...'+up)
-# load_dns_servers()
-print(wl+okk+'loaded SMTP configs:           '+bold(num(len(domain_configs_cache))+' lines'))
+print(inf+'loading DNS servers...'+up)
+load_dns_servers()
+print(wl+okk+'loaded SMTP configs:        '+bold(num(len(domain_configs_cache))+' lines'))
 print(inf+'source file:                   '+bold(list_filename))
 print(inf+'total lines to procceed:       '+bold(num(total_lines)))
 print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(password_collumn))
