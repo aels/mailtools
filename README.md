@@ -1,6 +1,6 @@
 [<img alt="image" width="100%" src="https://user-images.githubusercontent.com/1212294/215314027-df9b97ed-5547-42a4-b043-a5ca32eb189d.png">](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
 
-<img src="https://img.shields.io/badge/Language-python-blue"> <img src="https://img.shields.io/badge/code_quality-%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90-green"> <img src="https://img.shields.io/badge/%E2%99%A5-made_with_love-pink"> <img src="https://hits.sh/github.com/aels/mailtools.svg" alt="visits">
+<img src="https://img.shields.io/badge/xss.is-community-green"> <img src="https://img.shields.io/badge/Language-python-blue"> <img src="https://img.shields.io/badge/code_quality-%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90-green"> <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F-made_with_love-pink"> <img src="https://hits.sh/github.com/aels/mailtools.svg" alt="visits">
 
 # Community
 - [XSS.is](https://bit.ly/3XN8g87#https://xss.is/forums/70/) (Damagelab reborn) is one of the oldest underground forums with skilled and friendly members.
