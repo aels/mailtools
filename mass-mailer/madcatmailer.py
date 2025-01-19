@@ -17,12 +17,8 @@ except ImportError:
 if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
 	exit('\033[0;31mpython 3.9 is required. try to run this script with \033[1mpython3\033[0;31m instead of \033[1mpython\033[0m')
 
-# dangerous mx domains, skipping them all
-dangerous_domains = r'acronis|acros|adlice|alinto|appriver|aspav|atomdata|avanan|avast|barracuda|baseq|bitdefender|broadcom|btitalia|censornet|checkpoint|cisco|cistymail|clean-mailbox|clearswift|closedport|cloudflare|comforte|corvid|crsp|cyren|darktrace|data-mail-group|dmarcly|drweb|duocircle|e-purifier|earthlink-vadesecure|ecsc|eicar|elivescanned|eset|essentials|exchangedefender|fireeye|forcepoint|fortinet|gartner|gatefy|gonkar|guard|helpsystems|heluna|hosted-247|iberlayer|indevis|infowatch|intermedia|intra2net|invalid|ioactive|ironscales|isync|itserver|jellyfish|kcsfa.co|keycaptcha|krvtz|libraesva|link11|localhost|logix|mailborder.co|mailchannels|mailcleaner|mailcontrol|mailinator|mailroute|mailsift|mailstrainer|mcafee|mdaemon|mimecast|mx-relay|mx1.ik2|mx37\.m..p\.com|mxcomet|mxgate|mxstorm|n-able|n2net|nano-av|netintelligence|network-box|networkboxusa|newnettechnologies|newtonit.co|odysseycs|openwall|opswat|perfectmail|perimeterwatch|plesk|prodaft|proofpoint|proxmox|redcondor|reflexion|retarus|safedns|safeweb|sec-provider|secureage|securence|security|sendio|shield|sicontact|sonicwall|sophos|spamtitan|spfbl|spiceworks|stopsign|supercleanmail|techtarget|titanhq|trellix|trendmicro|trustifi|trustwave|tryton|uni-muenster|usergate|vadesecure|wessexnetworks|zillya|zyxel|fucking-shit|abus|bad|black|bot|brukalai|excello|filter|honey|junk|lab|list|metunet|rbl|research|security|spam|trap|ubl|virtual|virus|vm\d'
 mailing_services = r'amazon|elastic|sendinblue|twilio|sendgrid|mailgun|netcore|pepipost|mailjet|mailchimp|mandrill|salesforce|constant|postmark|sharpspring|zepto|litmus|sparkpost|smtp2go|socketlabs|aritic|kingmailer|netcore|flowmailer|jangosmtp'
 no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|interia\.pl|onet\.pl|spamtest\.glockdb\.com)$'
-glock_json_response_url = 'https://app.prod.glockapps.com/api/v1/GetSingleTestResults?ExternalUserId=st-3-'
-glock_report_url = 'https://glockapps.com/inbox-email-tester-report/?uid=st-3-'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
 text_extensions = 'txt|html|htm|mhtml|mht|xhtml|svg'.split('|')
 
@@ -50,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v24.12.15{z}
+          ╙     {b}MadCat Mailer v25.01.19{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -176,13 +172,13 @@ def get_rand_ip_of_host(host):
 def is_valid_email(email):
 	return re.match(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$', email)
 
-def is_dangerous_email(email):
-	global resolver_obj, dangerous_domains
+def is_outlook_email(email):
+	global resolver_obj
 	try:
 		mx_domain = str(resolver_obj.resolve(email.split('@')[-1], 'mx')[0].exchange)[0:-1]
-		return mx_domain if re.findall(dangerous_domains, mx_domain) and not re.findall(r'\.outlook\.com$', mx_domain) else False
+		return True if re.findall(r'\.outlook\.com$', mx_domain) else False
 	except:
-		return 'no mx records found'
+		return False
 
 def extract_email(line):
 	return first(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
@@ -274,6 +270,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
 	smtp_from = extract_email(smtp_user) or extract_email(mail_from) or 'no-reply@localhost'
+	smtp_host = smtp_from.split('@')[1]
 	message = MIMEMultipart()
 	message['To'] = mail_to
 	message['From'] = smtp_from if is_valid_email(mail_from) else mail_from.split(' <')[0]+f' <{smtp_from}>'
@@ -287,10 +284,13 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	if config['add_high_priority']:
 		headers+= 'X-Priority: 1\n'
 		headers+= 'X-MSmail-Priority: High\n'
-	headers+= 'X-Source-IP: 127.0.0.1\n'
-	headers+= 'X-Sender-IP: 127.0.0.1\n'
-	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
-	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	if is_outlook_email(mail_to):
+		headers+= 'X-Source-IP: 127.0.0.1\n'
+		headers+= 'X-Sender-IP: 127.0.0.1\n'
+		headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
+		headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
+	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	headers+= 'Date: '+formatdate(localtime=True)+'\n'
 	headers+= 'Received: '+' '.join(get_random_name())+'\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
@@ -373,13 +373,6 @@ def worker_item(mail_que, results_que):
 						time_start = time.perf_counter()
 						mail_str = get_testmail_str(smtp_str) or mail_str or mail_que.get()
 						mail_to = extract_email(mail_str)
-						if is_dangerous := is_dangerous_email(mail_to):
-							msg = red('-\b'+'>'*(mails_sent%3)+b+'>',2)+red('>> '[mails_sent%3:],2)+'skipping email - '+mail_to+' ('+red(is_dangerous)+')'
-							results_que.put((self.name, current_server+msg, mails_sent))
-							mails_dangerous_que.put((mail_str, is_dangerous))
-							mail_str = False
-							time.sleep(0.5)
-							continue
 						smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 						msg = green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
 						results_que.put((self.name, current_server+msg, mails_sent))
@@ -596,7 +589,7 @@ print(inf+'mail body:                     '+bold(config['mail_body']))
 print(inf+'attachments:                   '+bold(config['attachment_files'] or '-'))
 print(inf+'file with redirects:           '+bold(config['redirects_file'] or '-'))
 
-test_inbox()
+# test_inbox()
 
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
