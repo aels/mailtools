@@ -14,6 +14,24 @@ Most likely there you will find help and new business partners. [Welcome aboard!
 - [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
 - [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
 # Full spamming guide from Aels (me). How to use this tools. Now free.
+Table of content:
+- Preparing a lead database
+- Collecting and filtering smtp servers
+- Writing a letter text
+- Letter obfuscation
+- Images in a letter
+- Creating trusted redirects
+- Obfuscation of redirects
+- Protecting a landing page from the Google SafeBrowsing red screen
+- Choosing and preparing an attachment
+- Tracking recipients' views of letters
+- Banning letter forwarding
+- Protecting a link in a letter from automatic analysis
+- Checking for an inbox
+- The difference between mailers at the network level and which one to choose
+- Launching a campaign (wow, that was a long way)
+- Bonus: where to get relatively fresh lead databases for mailing
+Links, google translation ready:
 - [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 1](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-02-03)
 - [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 2](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-CHast-2-02-22)
 - [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 3](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-CHast-3-02-22)
