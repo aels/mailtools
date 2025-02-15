@@ -31,6 +31,7 @@ Table of content:
 - The difference between mailers at the network level and which one to choose
 - Launching a campaign (wow, that was a long way)
 - Bonus: where to get relatively fresh lead databases for mailing
+
 Links, google translation ready:
 - [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 1](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-02-03)
 - [Inboxing corp-mails/outlook. Инбоксим корпы/аутлук. Part 2](https://telegra.ph/Inboxing-corp-mailsoutlook-Inboksim-korpyautluk-CHast-2-02-22)
