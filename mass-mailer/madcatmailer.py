@@ -6,6 +6,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.utils import formatdate
+from email.header import Header
+from email import charset
 
 try:
 	import psutil, requests, dns.resolver
@@ -24,6 +26,7 @@ text_extensions = 'txt|html|htm|mhtml|mht|xhtml|svg'.split('|')
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
+charset.add_charset('utf-8', charset.SHORTEST, charset.QP)
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -46,7 +49,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.01.19{z}
+          ╙     {b}MadCat Mailer v25.02.03{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -273,26 +276,26 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	smtp_host = smtp_from.split('@')[1]
 	message = MIMEMultipart()
 	message['To'] = mail_to
-	message['From'] = smtp_from if is_valid_email(mail_from) else mail_from.split(' <')[0]+f' <{smtp_from}>'
-	message['Subject'] = mail_subject
+	message['From'] = smtp_from if is_valid_email(mail_from) else Header(mail_from.split(' <')[0],'utf-8')+f' <{smtp_from}>'
+	message['Subject'] = Header(mail_subject,'utf-8')
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
 	for attachment_file_path in config['attachment_files']:
 		attachment = create_attachment(attachment_file_path, subs)
 		message.attach(attachment)
 	headers = 'Return-Path: '+smtp_from+'\n'
 	headers+= 'Reply-To: '+mail_reply_to+'\n'
-	if config['add_high_priority']:
-		headers+= 'X-Priority: 1\n'
-		headers+= 'X-MSmail-Priority: High\n'
-	if is_outlook_email(mail_to):
-		headers+= 'X-Source-IP: 127.0.0.1\n'
-		headers+= 'X-Sender-IP: 127.0.0.1\n'
-		headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
-		headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	headers+= 'X-Source-IP: 127.0.0.1\n'
+	headers+= 'X-Sender-IP: 127.0.0.1\n'
+	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
+	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
+	headers+= 'Precedence: bulk\n'
 	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	headers+= 'Date: '+formatdate(localtime=True)+'\n'
 	headers+= 'Received: '+' '.join(get_random_name())+'\n'
+	if config['add_high_priority']:
+		headers+= 'X-Priority: 1\n'
+		headers+= 'X-MSmail-Priority: High\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
 		headers += get_read_receipt_headers(smtp_from)
 	message_raw = headers + message.as_string()
