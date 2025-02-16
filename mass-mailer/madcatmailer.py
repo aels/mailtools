@@ -276,7 +276,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	smtp_host = smtp_from.split('@')[1]
 	message = MIMEMultipart()
 	message['To'] = mail_to
-	message['From'] = smtp_from if is_valid_email(mail_from) else Header(mail_from.split(' <')[0],'utf-8')+f' <{smtp_from}>'
+	message['From'] = smtp_from if is_valid_email(mail_from) else str(Header(mail_from.split(' <')[0],'utf-8'))+f' <{smtp_from}>'
 	message['Subject'] = Header(mail_subject,'utf-8')
 	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
 	for attachment_file_path in config['attachment_files']:
@@ -431,7 +431,7 @@ def load_config():
 			open('dummy.config','w').write(read(dummy_config_path))
 			print(wrn+'nor '+bold('.config')+' files found in current directory, nor provided as a parameter')
 			exit( wrn+'sample '+bold('dummy.config')+' file downloaded to the current directory. please check and edit it before next run')
-	temp_config.read(config['config_file'])
+	temp_config.read_file(open(config['config_file'], 'r', encoding='utf-8'))
 	if not temp_config.has_section(head_name):
 		exit(err+'malformed config file')
 	for key, value in temp_config.items(head_name):
