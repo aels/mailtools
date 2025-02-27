@@ -49,7 +49,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.02.16{z}
+          ╙     {b}MadCat Mailer v25.02.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -106,6 +106,9 @@ def quit(signum, frame):
 
 def now():
 	return datetime.datetime.now().strftime('[ %Y-%m-%d %H:%M:%S ]')
+
+def get_rand_str(len):
+	return ''.join(random.choice(string.ascii_lowercase+string.digits) for i in range(len))
 
 def check_ipv4():
 	try:
@@ -282,18 +285,19 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	for attachment_file_path in config['attachment_files']:
 		attachment = create_attachment(attachment_file_path, subs)
 		message.attach(attachment)
-	headers = 'Return-Path: '+smtp_from+'\n'
+	headers = 'Return-Path: <>'+'\n' # https://stackoverflow.com/a/154794/1906976
 	headers+= 'Reply-To: '+mail_reply_to+'\n'
 	headers+= 'X-Source-IP: 127.0.0.1\n'
 	headers+= 'X-Sender-IP: 127.0.0.1\n'
 	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
 	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
 	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
-	headers+= 'Precedence: bulk\n'
+	headers+= 'Precedence: first-class\n' # https://stackoverflow.com/a/6240126/1906976
 	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	headers+= 'Date: '+formatdate(localtime=True)+'\n'
+	headers+= 'Message-ID: <'+get_rand_str(32)+'@'+smtp_host+'>\n'
 	headers+= 'Received: '+' '.join(get_random_name())+'\n'
-	if config['add_high_priority']:
+	if is_outlook_email(mail_to):
 		headers+= 'X-Priority: 1\n'
 		headers+= 'X-MSmail-Priority: High\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
@@ -569,7 +573,7 @@ got_updates = False
 
 window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
-inbox_test_id = ''.join(random.choice(string.ascii_lowercase+string.digits) for i in range(8))
+inbox_test_id = get_rand_str(8)
 
 show_banner()
 tune_network()
