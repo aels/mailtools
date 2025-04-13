@@ -573,6 +573,7 @@ got_updates = False
 
 window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
+resolver_obj.nameservers = ['8.8.8.8', '1.1.1.1']
 inbox_test_id = get_rand_str(8)
 
 show_banner()
