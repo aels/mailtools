@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v25.03.26{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v25.04.20{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -94,12 +94,6 @@ def tune_network():
 			# 	print('Better to run this script as root to allow better network performance')
 		except Exception as e:
 			print(wrn+'failed to set rlimit_nofile:   '+str(e))
-
-def switch_dns_nameserver():
-	global resolver_obj, custom_dns_nameservers
-	resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
-	resolver_obj.rotate = True
-	return True
 
 def check_ipv4():
 	try:
@@ -179,8 +173,16 @@ def is_listening(ip, port):
 	except:
 		return False
 
+def get_new_dns_resolver():
+	global custom_dns_nameservers
+	resolver_obj = dns.resolver.Resolver()
+	resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
+	resolver_obj.rotate = True
+	return resolver_obj
+
 def get_rand_ip_of_host(host):
-	global resolver_obj, results_que
+	global results_que
+	resolver_obj = get_new_dns_resolver()
 	try:
 		host = resolver_obj.resolve(host, 'cname')[0].target
 	except:
@@ -191,9 +193,9 @@ def get_rand_ip_of_host(host):
 		try:
 			ip_array = resolver_obj.resolve(host, 'a')
 		except Exception as e:
-			if 'solution lifetime expired' in str(e):
+			if 'solution lifetime expired' in str(e) or 'too many open files' in str(e):
 				results_que.put(orange('dns resolver overloaded. switching...',1))
-				return switch_dns_nameserver() and get_rand_ip_of_host(host)
+				return get_rand_ip_of_host(host)
 			else:
 				raise Exception('No A record found for '+host+' ('+str(e).lower()+')')
 	ip = str(random.choice(ip_array))
@@ -214,15 +216,16 @@ def get_alive_neighbor(ip, port):
 		raise Exception('No listening neighbors found for '+ip+':'+str(port))
 
 def guess_smtp_server(domain):
-	global default_login_template, resolver_obj, domain_configs_cache, dangerous_domains, results_que
+	global default_login_template, domain_configs_cache, dangerous_domains, results_que
 	domains_arr = [domain, 'smtp-qa.'+domain, 'smtp.'+domain, 'mail.'+domain, 'webmail.'+domain, 'mx.'+domain]
 	try:
+		resolver_obj = get_new_dns_resolver()
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
 		domains_arr += [mx_domain]
 	except Exception as e:
-		if 'solution lifetime expired' in str(e):
+		if 'solution lifetime expired' in str(e) or 'too many open files' in str(e):
 			results_que.put(orange('dns resolver overloaded. switching...',1))
-			return switch_dns_nameserver() and guess_smtp_server(domain)
+			return guess_smtp_server(domain)
 		else:
 			raise Exception('no MX records found for: '+domain)
 	if is_ignored_host(mx_domain) or re.search(dangerous_domains, mx_domain) and not re.search(r'\.outlook\.com$', mx_domain):
@@ -516,9 +519,6 @@ speed = []
 progress = start_from_line
 default_login_template = '%EMAILADDRESS%'
 total_lines = wc_count(list_filename)
-resolver_obj = dns.resolver.Resolver()
-resolver_obj.nameservers = [random.choice(custom_dns_nameservers)]
-resolver_obj.rotate = True
 domain_configs_cache = {}
 
 print(inf+'loading SMTP configs...'+up)
