@@ -193,7 +193,7 @@ def get_rand_ip_of_host(host):
 		try:
 			ip_array = resolver_obj.resolve(host, 'a')
 		except Exception as e:
-			if 'solution lifetime expired' in str(e) or 'too many open files' in str(e):
+			if re.search(r'solution lifetime expired|too many open files', str(e).lower()):
 				results_que.put(orange('dns resolver overloaded. switching...',1))
 				return get_rand_ip_of_host(host)
 			else:
@@ -223,7 +223,7 @@ def guess_smtp_server(domain):
 		mx_domain = str(resolver_obj.resolve(domain, 'mx')[0].exchange)[0:-1]
 		domains_arr += [mx_domain]
 	except Exception as e:
-		if 'solution lifetime expired' in str(e) or 'too many open files' in str(e):
+		if re.search(r'solution lifetime expired|too many open files', str(e).lower()):
 			results_que.put(orange('dns resolver overloaded. switching...',1))
 			return guess_smtp_server(domain)
 		else:
