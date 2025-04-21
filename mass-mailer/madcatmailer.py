@@ -130,6 +130,9 @@ def get_rand_of(string):
 def get_rand_color():
 	return '#'+os.urandom(random.choice([3,4])).hex()
 
+def rand_case(string):
+	return string.lower() if random.choice([0,1]) else string.upper()
+
 def get_zerofont_css():
 	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;white-space:nowrap'.split(';')
 	dummy_css = f"""color: {get_rand_color()}
@@ -146,16 +149,17 @@ def get_zerofont_css():
 		align-self: {get_rand_of('start|inherit')}
 		align-content: {get_rand_of('start|inherit')}
 		background-origin: {get_rand_of('padding-box|inherit')}""".replace('\t', '').split('\n')
-	return ';'.join(shuffle_arr(zf_css+dummy_css))
+	return ';'.join([rand_case(styles) for styles in shuffle_arr(zf_css+dummy_css)])
 
 def get_zerofont_html(string):
-	tag = get_rand_of('span|u|b|i|div')
+	tag = get_rand_of('span|u|b|i|div|sup|strong')
+	tag = rand_case(tag)
 	return f'<{tag} style="{get_zerofont_css()}">{string}</{tag}>'
 
 def shuffle_css_styles(html):
 	for tag_style_value in re.findall(r'style="([^"]+)"', html):
 		styles = tag_style_value.replace('&quot;', '"').split(';')
-		html = html.replace(tag_style_value, ';'.join(shuffle_arr(styles)).replace('"', '&quot;'))
+		html = html.replace(tag_style_value, ';'.join([rand_case(styles) for styles in shuffle_arr(zf_css+dummy_css)]).replace('"', '&quot;'))
 	return html
 
 def shuffle_html_attributes(html):
@@ -354,6 +358,8 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	mail_reply_to = expand_macros(config['mail_reply_to'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
 	mail_body = expand_macros(read(config['mail_body']) or os.path.isdir(config['mail_body']) and read(rand_file_from_dir(config['mail_body'])) or config['mail_body'], subs)
+	mail_body = shuffle_html_attributes(mail_body)
+	mail_body = shuffle_css_styles(mail_body)
 	smtp_from = extract_mail(smtp_user) or extract_mail(mail_from) or 'no-reply@localhost'
 	smtp_host = smtp_from.split('@')[1]
 	message = MIMEMultipart()
