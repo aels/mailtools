@@ -141,7 +141,7 @@ def get_zerofont_css():
 		text-decoration: {get_rand_of('none|inherit')}
 		text-shadow: {get_rand_of('none|inherit')}
 		box-align: {get_rand_of('unset|inherit')}
-		box-shadow: {get_rand_of('inset |')}{get_rand_of('0px|0')} {get_rand_of('0px|0')}{get_rand_of('| '.get_rand_color())}
+		box-shadow: {get_rand_of('inset |')}{get_rand_of('0px|0')} {get_rand_of('0px|0')}{get_rand_of('| '+get_rand_color())}
 		font-weight: {get_rand_of('normal|inherit')}
 		font-display: {get_rand_of('auto|block|swap|fallback|optional|inherit')}
 		font: {get_rand_of('optional|inherit')}
