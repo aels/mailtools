@@ -156,16 +156,17 @@ def get_zerofont_html(string):
 	tag = rand_case(tag)
 	return f'<{tag} style="{get_zerofont_css()}">{string}</{tag}>'
 
+def shuffle_html_attributes(html):
+	for html_attr_value in re.findall(r'<[A-Za-z]+ ([^>]+)>', html):
+		attributes = re.findall(r'([A-Za-z]+="[^"]+")', html_attr_value)
+		html = html.replace(html_attr_value, ' '.join(shuffle_arr(attributes)))
+	return html
+
 def shuffle_css_styles(html):
 	for tag_style_value in re.findall(r'style="([^"]+)"', html):
 		styles = tag_style_value.replace('&quot;', '"').split(';')
-		html = html.replace(tag_style_value, ';'.join([rand_case(style) for style in shuffle_arr(styles)]).replace('"', '&quot;'))
-	return html
-
-def shuffle_html_attributes(html):
-	for html_attr_value in re.findall(r'<[A-Za-z]+ ([^>]+)>', html):
-		attributes = re.findall(r' ([A-Za-z]+="[^"]+")', html_attr_value)
-		html = html.replace(html_attr_value, ' '.join(shuffle_arr(attributes)))
+		styles = [rand_case(style).strip() for style in shuffle_arr(styles) if style!='']
+		html = html.replace(tag_style_value, get_rand_of(';|; ').join(styles).replace('"', '&quot;'))
 	return html
 
 def obfuscate_phone_number(number):
