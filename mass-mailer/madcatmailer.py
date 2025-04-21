@@ -23,6 +23,7 @@ mailing_services = r'amazon|elastic|sendinblue|twilio|sendgrid|mailgun|netcore|p
 no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|interia\.pl|onet\.pl|spamtest\.glockdb\.com)$'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
 text_extensions = 'txt|html|htm|mhtml|mht|xhtml|svg'.split('|')
+slow_send_mail_servers = 'gmail,googlemail,google'
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -49,7 +50,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.02.27{z}
+          ╙     {b}MadCat Mailer v25.04.21{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -85,6 +86,10 @@ def bold(s):
 def num(s):
 	return f'{int(s):,}'
 
+def shuffle_arr(array):
+	random.shuffle(array)
+	return array
+
 def tune_network():
 	if os.name != 'nt':
 		try:
@@ -107,8 +112,70 @@ def quit(signum, frame):
 def now():
 	return datetime.datetime.now().strftime('[ %Y-%m-%d %H:%M:%S ]')
 
+def url_escape_str(string):
+	return ''.join(['%'+format(ord(i), 'x') for i in string])
+
+def html_encode_str(string):
+	return ''.join(['&#'+format(ord(i), 'd') for i in string])
+
 def get_rand_str(len):
 	return ''.join(random.choice(string.ascii_lowercase+string.digits) for i in range(len))
+
+def get_rand_ip():
+	return '.'.join(str(random.randint(1, 255)) for i in range(4))
+
+def get_rand_of(string):
+	return random.choice(string.split('|'))
+
+def get_rand_color():
+	return '#'+os.urandom(random.choice([3,4])).hex()
+
+def get_zerofont_css():
+	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;white-space:nowrap'.split(';')
+	dummy_css = f"""color: {get_rand_color()}
+		background: {get_rand_color()}
+		text-align: {get_rand_of('justify-all|none|inherit')}
+		text-decoration: {get_rand_of('none|inherit')}
+		text-shadow: {get_rand_of('none|inherit')}
+		box-align: {get_rand_of('unset|inherit')}
+		box-shadow: {get_rand_of('inset |')}{get_rand_of('0px|0')} {get_rand_of('0px|0')}{get_rand_of('| '.get_rand_color())}
+		font-weight: {get_rand_of('normal|inherit')}
+		font-display: {get_rand_of('auto|block|swap|fallback|optional|inherit')}
+		font: {get_rand_of('optional|inherit')}
+		font-smooth: {get_rand_of('unset|inherit')}
+		align-self: {get_rand_of('start|inherit')}
+		align-content: {get_rand_of('start|inherit')}
+		background-origin: {get_rand_of('padding-box|inherit')}""".replace('\t', '').split('\n')
+	return ';'.join(shuffle_arr(zf_css+dummy_css))
+
+def get_zerofont_html(string):
+	tag = get_rand_of('span|u|b|i|div')
+	return f'<{tag} style="{get_zerofont_css()}">{string}</{tag}>'
+
+def shuffle_css_styles(html):
+	for tag_style_value in re.findall(r'style="([^"]+)"', html):
+		styles = tag_style_value.replace('&quot;', '"').split(';')
+		html = html.replace(tag_style_value, ';'.join(shuffle_arr(styles)).replace('"', '&quot;'))
+	return html
+
+def shuffle_html_attributes(html):
+	for html_attr_value in re.findall(r'<[A-Za-z]+ ([^>]+)>', html):
+		attributes = re.findall(r' ([A-Za-z]+="[^"]+")', html_attr_value)
+		html = html.replace(html_attr_value, ' '.join(shuffle_arr(attributes)))
+	return html
+
+def obfuscate_phone_number(number):
+	allowed_chars = '          &---()./!	$_'
+	if number[0]=='+':
+		have_plus = True
+		number = number[1:]
+	else:
+		have_plus = False
+	digits = re.findall(r'\d', number)
+	for i, d in enumerate(digits):
+		digits[i] = url_escape_str(d) if not random.choice(range(0,7)) else d
+	number = re.sub(r'( )', lambda x: random.choice(allowed_chars), ' '.join(digits)).replace(' ', '')
+	return have_plus and '+'+number or number
 
 def check_ipv4():
 	try:
@@ -175,24 +242,27 @@ def get_rand_ip_of_host(host):
 			raise Exception('no a record found for '+host)
 	return str(random.choice(ip_array))
 
-def is_valid_email(email):
-	return re.match(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$', email)
+def is_valid_email(mail):
+	return re.match(r'^[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}$', mail)
 
-def is_outlook_email(email):
+def is_mail_of(mail, services):
 	global resolver_obj
 	try:
-		mx_domain = str(resolver_obj.resolve(email.split('@')[-1], 'mx')[0].exchange)[0:-1]
-		return True if re.findall(r'\.outlook\.com$', mx_domain) else False
+		mx_domain = str(resolver_obj.resolve(mail.split('@')[-1], 'mx')[0].exchange)[0:-1]
 	except:
 		return False
+	for service in services.split(','):
+		if service in mx_domain:
+			return True
+	return False
 
-def extract_email(line):
+def extract_mail(line):
 	return first(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
 
 def expand_macros(text, subs):
 	mail_str, smtp_user, mail_redirect_url, rand_Fname, rand_Lname = subs
-	mail_to = extract_email(mail_str)
-	placeholders = 'email|email_b64|email_user|email_host|email_l2_domain|smtp_user|smtp_host|url|random_Fname|random_Lname|random_fname|random_lname'.split('|')
+	mail_to = extract_mail(mail_str)
+	placeholders = 'email|email_b64|email_user|email_host|email_l2_domain|smtp_user|smtp_host|url|rand_Fname|rand_Lname|rand_fname|rand_lname'.split('|')
 	replacements = [
 		mail_to,
 		base64_encode(mail_to),
@@ -209,12 +279,21 @@ def expand_macros(text, subs):
 	]
 	if not '\x00' in text:
 		for i, column in enumerate(mail_str.split(';')):
-			text = text.replace('{{'+str(i+1)+'}}', column)
+			text = text.replace('{'+str(i+1)+'}', column)
 		for i, placeholder in enumerate(placeholders):
-			text = text.replace('{{'+placeholder+'}}', replacements[i])
-		macros = re.findall(r'(\{\{.*?\}\})', text)
-		for macro in macros:
-			text = text.replace(macro, random.choice(macro[2:-2].split('|')))
+			text = text.replace('{'+placeholder+'}', replacements[i])
+		for file_path in [file_path for file_path in re.findall(r'(\{.+?\})', text) if is_file_or_url(file_path[1:-1])]:
+			text = text.replace(file_path, random.choice(read_lines(file_path[1:-1])))
+		text = re.sub(r'(\{d\})', lambda x: str(random.choice(range(0,9))), text)
+		text = re.sub(r'(\{rand_str\})', lambda x: get_rand_str(16), text)
+		text = re.sub(r'(\{rand_ip\})', lambda x: get_rand_ip(), text)
+		text = re.sub(r'(\{zf_css\})', lambda x: get_zerofont_css(), text)
+		for phone_num in re.findall(r'(\{tel:.+?\})', text):
+			text = text.replace(phone_num, 'tel:'+obfuscate_phone_number(phone_num[5:-1]))
+		for zf_splitter in re.findall(r'(\{zf:.+?\})', text):
+			text = text.replace(zf_splitter, get_zerofont_html(zf_splitter[4:-1]))
+		for macro in re.findall(r'(\{.+?\|.+?\})', text):
+			text = text.replace(macro, get_rand_of(macro[1:-1]))
 	return text
 
 def get_read_receipt_headers(mail_from):
@@ -270,12 +349,12 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	global config, no_read_receipt_for, total_sent
 	mail_redirect_url = random.choice(config['redirects_list'])
 	subs = [mail_str, smtp_user, mail_redirect_url] + get_random_name()
-	mail_to = extract_email(mail_str)
+	mail_to = extract_mail(mail_str)
 	mail_from = expand_macros(config['mail_from'], subs)
 	mail_reply_to = expand_macros(config['mail_reply_to'], subs)
 	mail_subject = expand_macros(config['mail_subject'], subs)
-	mail_body = expand_macros(read(config['mail_body']) if is_file_or_url(config['mail_body']) else config['mail_body'], subs)
-	smtp_from = extract_email(smtp_user) or extract_email(mail_from) or 'no-reply@localhost'
+	mail_body = expand_macros(read(config['mail_body']) or os.path.isdir(config['mail_body']) and read(rand_file_from_dir(config['mail_body'])) or config['mail_body'], subs)
+	smtp_from = extract_mail(smtp_user) or extract_mail(mail_from) or 'no-reply@localhost'
 	smtp_host = smtp_from.split('@')[1]
 	message = MIMEMultipart()
 	message['To'] = mail_to
@@ -296,8 +375,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	headers+= 'Date: '+formatdate(localtime=True)+'\n'
 	headers+= 'Message-ID: <'+get_rand_str(32)+'@'+smtp_host+'>\n'
-	headers+= 'Received: '+' '.join(get_random_name())+'\n'
-	if is_outlook_email(mail_to):
+	if is_mail_of(mail_to, 'outlook.com'):
 		headers+= 'X-Priority: 1\n'
 		headers+= 'X-MSmail-Priority: High\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
@@ -310,14 +388,14 @@ def get_testmail_str(smtp_str):
 	mails_to_verify = config['mails_to_verify'].split(',')
 	mail_str = False
 	if smtp_pool_tested[smtp_str]<len(mails_to_verify):
-		mail_str = test_mail_str.replace(extract_email(test_mail_str), mails_to_verify[smtp_pool_tested[smtp_str]])
+		mail_str = test_mail_str.replace(extract_mail(test_mail_str), mails_to_verify[smtp_pool_tested[smtp_str]])
 		smtp_pool_tested[smtp_str] += 1
 	return mail_str
 
-def smtp_testmail():
-	global smtp_pool_array, test_mail_str, smtp_errors_que
-	test_mail_sent = False
-	while not test_mail_sent:
+def smtp_send_testmails():
+	global smtp_pool_array, test_mail_str, smtp_errors_que, config
+	test_mails_sent = False
+	while not test_mails_sent:
 		try:
 			smtp_str = random.choice(smtp_pool_array)
 		except:
@@ -325,8 +403,12 @@ def smtp_testmail():
 		smtp_server, port, smtp_user, password = smtp_str.split('|')
 		try:
 			server_obj = smtp_connect(smtp_server, port, smtp_user, password)
-			smtp_sendmail(server_obj, smtp_server, smtp_user, test_mail_str)
-			test_mail_sent = True
+			while True:
+				mail_str = get_testmail_str(smtp_str)
+				if not mail_str:
+					break
+				smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
+			test_mails_sent = True
 		except Exception as e:
 			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
 			smtp_errors_que.put((smtp_str, msg, 0))
@@ -335,29 +417,12 @@ def smtp_testmail():
 	return True
 
 def test_inbox():
-	global inbox_test_id, glock_json_response_url, glock_report_url
-	results_mask = r'"Finished":true,"DKIM".+?"ISP":"Gmail".+?"iType":"([^"]+)".+?"ISP":"Outlook".+?"iType":"([^"]+)".+?"ISP":"Yahoo \(Global\)".+?"iType":"([^"]+)".+?"SpamAssassin".+?"Score":([\d.]+),'
-	results_array = []
-	print(wl+inf+f'sending test mail to '+bold(f'st-3-{inbox_test_id}@spamtest.glockdb.com')+'...')
-	smtp_testmail()
-	for i in range(1,17):
-		time.sleep(1)
-		print(wl+inf+'waiting ~15 seconds for the results to come'+(i%4*'.')+up)
-		result_json = i%5==0 and read(glock_json_response_url+inbox_test_id)
-		if result_json and re.findall(r'"Finished":true,"DKIM"', result_json):
-			inbox_test_result = first(re.findall(results_mask, result_json)) or ['-']*4
-			break
-		if i==16:
-			inbox_test_result = ['Lost']*4
-	for service in ['Gmail','Outlook','Yahoo','SpamAssassin']:
-		status = inbox_test_result.pop(0)
-		status = re.search(r'^(Primary|Inbox|[0-4]\.\d)$', status) and green(status) or red(status)
-		results_array += [service+': '+status]
-	print(wl+okk+', '.join(results_array).lower())
-	print(wl+okk+'report url: '+glock_report_url+inbox_test_id)
+	print(wl+inf+f'sending test mails to '+bold(config['mails_to_verify'])+'...')
+	smtp_send_testmails()
+	print(wl+okk+f'test mails to '+bold(config['mails_to_verify'])+' sent.')
 
 def worker_item(mail_que, results_que):
-	global threads_counter, smtp_pool_array, loop_times, smtp_errors_que, mails_dangerous_que
+	global threads_counter, smtp_pool_array, loop_times, smtp_errors_que, slow_send_mail_servers_delay
 	self = threading.current_thread()
 	mail_str = False
 	mails_sent = 0
@@ -373,19 +438,24 @@ def worker_item(mail_que, results_que):
 			results_que.put((self.name, current_server+blue('~\b->- ',0)+smtp_str, mails_sent))
 			try:
 				server_obj = smtp_connect(smtp_server, port, smtp_user, password)
+				server_born_time = time.perf_counter()
+				last_slow_mail_time = time.perf_counter()
 				while True:
 					if mail_que.empty() and not mail_str:
 						break
 					try:
 						time_start = time.perf_counter()
 						mail_str = get_testmail_str(smtp_str) or mail_str or mail_que.get()
-						mail_to = extract_email(mail_str)
+						mail_to = extract_mail(mail_str)
+						if time.perf_counter()-last_slow_mail_time<slow_send_mail_servers_delay:
+							time.sleep(slow_send_mail_servers_delay-time.perf_counter()+last_slow_mail_time)
 						smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 						msg = green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
 						results_que.put((self.name, current_server+msg, mails_sent))
 						smtp_sent += 1
 						mails_sent += 1
 						mail_str = False
+						last_slow_mail_time = time.perf_counter() if is_mail_of(mail_to, slow_send_mail_servers) else last_slow_mail_time
 						loop_times += [time.perf_counter() - time_start]
 						len(loop_times)>100 and loop_times.pop(0)
 					except Exception as e:
@@ -448,17 +518,16 @@ def load_config():
 		for smtp_line in smtp_pool_array:
 			smtp_pool_tested[smtp_line] = 0
 			not re.findall(r'^[\w.+-]+\|\d+\|[@\w.+-]+\|[^|]+$', smtp_line) and exit(err+'"'+smtp_line+'" is not like "host|port|username|password"')
-	threads_count = len(smtp_pool_array)*5 if len(smtp_pool_array)*5<40 else 40
+	if len(smtp_pool_array)*5<threads_count:
+		threads_count = len(smtp_pool_array)*5
 	if not is_file_or_url(config['mails_list_file']):
 		exit(err+'cannot open mails list file. does it exist?')
-	else:
-		config['mails_dangerous_file'] = re.sub(r'\.([^.]+)$', r'_dangerous.\1', config['mails_list_file'])
 	if len([is_valid_email(mail) for mail in config['mails_to_verify'].split(',')])<config['mails_to_verify'].count(',')+1:
 		exit(err+'not all test emails looks valid. check them, please')
 	config['mail_from'] or exit(err+'please fulfill '+bold('mail_from')+' parameter with desired name and email')
 	config['mail_reply_to'] = config['mail_reply_to'] or config['mail_from']
 	config['mail_subject'] or exit(err+'please fulfill '+bold('mail_subject')+' parameter with desired email subject')
-	config['mail_body'] or exit(err+'please put the path to email body file or mail body itself as a string into '+bold('mail_body')+' parameter')
+	config['mail_body'] or exit(err+'please put the path to email body file(s) or mail body itself as a string into '+bold('mail_body')+' parameter')
 	config['attachment_files'] = config['attachment_files'].split(',') if config['attachment_files'] else []
 	for file_path in config['attachment_files']:
 		if not is_file_or_url(file_path) and not (os.path.isdir(file_path) and rand_file_from_dir(file_path)):
@@ -469,13 +538,11 @@ def load_config():
 		config['redirects_list'] = read_lines(config['redirects_file']) if config['redirects_file'] else ['']
 
 def fill_mail_queue():
-	global mail_que, total_mails_to_sent, inbox_test_id, test_mail_str, config
+	global mail_que, total_mails_to_sent, config
 	for i in read_lines(config['mails_list_file']):
 		i = normalize_delimiters(i)
-		if extract_email(i):
+		if extract_mail(i):
 			mail_que.put(i)
-			if not test_mail_str:
-				test_mail_str = i.replace(extract_email(i), f'st-3-{inbox_test_id}@spamtest.glockdb.com')
 	if not mail_que.qsize():
 		exit(err+'not enough emails. empty file?')
 	total_mails_to_sent = mail_que.qsize()
@@ -513,17 +580,13 @@ def every_second():
 		time.sleep(0.1)
 
 def logs_writer():
-	global config, smtp_errors_que, mails_dangerous_que
-	with open(config['smtps_errors_file'], 'a') as smtps_errors_file_handle, open(config['mails_dangerous_file'], 'a') as mails_dangerous_file_handle:
+	global config, smtp_errors_que
+	with open(config['smtps_errors_file'], 'a') as smtps_errors_file_handle:
 		while True:
 			while not smtp_errors_que.empty():
 				smtp_str, msg, smtp_sent = smtp_errors_que.get()
 				smtps_errors_file_handle.write(now()+' '+smtp_str+' ('+str(smtp_sent)+' emails): '+msg.split('\b')[-1]+'\n')
 				smtps_errors_file_handle.flush()
-			while not mails_dangerous_que.empty():
-				mail_str, is_dangerous = mails_dangerous_que.get()
-				mails_dangerous_file_handle.write(now()+' '+mail_str+': '+is_dangerous+'\n')
-				mails_dangerous_file_handle.flush()
 			time.sleep(0.05)
 
 def printer():
@@ -554,13 +617,13 @@ time_start = time.time()
 mail_que = queue.Queue()
 results_que = queue.Queue()
 smtp_errors_que = queue.Queue()
-mails_dangerous_que = queue.Queue()
 smtp_pool_array = []
 smtp_pool_tested = {}
 threads_statuses = {}
 test_mail_str = ''
-threads_count = 40
+threads_count = 100
 connection_timeout = 5
+slow_send_mail_servers_delay = 12
 total_sent = 0
 skipped = 0
 speed = []
@@ -574,7 +637,6 @@ got_updates = False
 window_width = os.get_terminal_size().columns-40
 resolver_obj = dns.resolver.Resolver()
 resolver_obj.nameservers = ['8.8.8.8', '1.1.1.1']
-inbox_test_id = get_rand_str(8)
 
 show_banner()
 tune_network()
@@ -591,13 +653,12 @@ print(okk+'loading config:                '+bold(config['config_file']))
 print(inf+'smtp servers file:             '+bold(config['smtps_list_file']+' ('+num(len(smtp_pool_array))+')'))
 print(inf+'smtp errors log:               '+bold(config['smtps_errors_file']))
 print(inf+'emails list file:              '+bold(config['mails_list_file']+' ('+num(total_mails_to_sent)+')'))
-print(inf+'dangerous emails log:          '+bold(config['mails_dangerous_file']))
 print(inf+'verification emails:           '+bold(config['mails_to_verify']))
 print(inf+'mail body:                     '+bold(config['mail_body']))
 print(inf+'attachments:                   '+bold(config['attachment_files'] or '-'))
 print(inf+'file with redirects:           '+bold(config['redirects_file'] or '-'))
 
-# test_inbox()
+test_inbox()
 
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
