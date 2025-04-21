@@ -149,7 +149,7 @@ def get_zerofont_css():
 		align-self: {get_rand_of('start|inherit')}
 		align-content: {get_rand_of('start|inherit')}
 		background-origin: {get_rand_of('padding-box|inherit')}""".replace('\t', '').split('\n')
-	return ';'.join([rand_case(styles) for styles in shuffle_arr(zf_css+dummy_css)])
+	return ';'.join([rand_case(style) for style in shuffle_arr(zf_css+dummy_css)])
 
 def get_zerofont_html(string):
 	tag = get_rand_of('span|u|b|i|div|sup|strong')
@@ -159,7 +159,7 @@ def get_zerofont_html(string):
 def shuffle_css_styles(html):
 	for tag_style_value in re.findall(r'style="([^"]+)"', html):
 		styles = tag_style_value.replace('&quot;', '"').split(';')
-		html = html.replace(tag_style_value, ';'.join([rand_case(styles) for styles in shuffle_arr(zf_css+dummy_css)]).replace('"', '&quot;'))
+		html = html.replace(tag_style_value, ';'.join([rand_case(style) for style in shuffle_arr(styles)]).replace('"', '&quot;'))
 	return html
 
 def shuffle_html_attributes(html):
