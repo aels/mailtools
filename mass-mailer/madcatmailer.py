@@ -131,28 +131,28 @@ def get_rand_color():
 	return '#'+os.urandom(random.choice([3,4])).hex()
 
 def rand_case(string):
-	return string.lower() if random.choice([0,1]) else string.upper()
+	return string.upper() if random.choice([0,1]) and not re.findall(r'linear-gradient\(|rgb\(', string) else string.lower()
 
 def get_zerofont_css():
-	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;white-space:nowrap'.split(';')
+	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;height:16px'.split(';')
 	dummy_css = f"""color: {get_rand_color()}
 		background: {get_rand_color()}
-		text-align: {get_rand_of('justify-all|none|inherit')}
+		text-align: {get_rand_of('initial|revert|revert-layer|unset|inherit')}
 		text-decoration: {get_rand_of('none|inherit')}
 		text-shadow: {get_rand_of('none|inherit')}
 		box-align: {get_rand_of('unset|inherit')}
 		box-shadow: {get_rand_of('inset |')}{get_rand_of('0px|0')} {get_rand_of('0px|0')}{get_rand_of('| '+get_rand_color())}
 		font-weight: {get_rand_of('normal|inherit')}
 		font-display: {get_rand_of('auto|block|swap|fallback|optional|inherit')}
-		font: {get_rand_of('optional|inherit')}
+		font: {get_rand_of('caption|icon|menu|message-box|small-caption|status-bar')}
 		font-smooth: {get_rand_of('unset|inherit')}
 		align-self: {get_rand_of('start|inherit')}
 		align-content: {get_rand_of('start|inherit')}
 		background-origin: {get_rand_of('padding-box|inherit')}""".replace('\t', '').split('\n')
-	return ';'.join([rand_case(style) for style in shuffle_arr(zf_css+dummy_css)])
+	return ';'.join([rand_case(style) for style in shuffle_arr(zf_css+shuffle_arr(dummy_css)[-4:])])
 
 def get_zerofont_html(string):
-	tag = get_rand_of('span|u|b|i|div|sup|strong')
+	tag = get_rand_of('span|div|sup')
 	tag = rand_case(tag)
 	return f'<{tag} style="{get_zerofont_css()}">{string}</{tag}>'
 
