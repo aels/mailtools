@@ -50,7 +50,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.04.21{z}
+          ╙     {b}MadCat Mailer v25.04.22{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -134,7 +134,7 @@ def rand_case(string):
 	return string.upper() if random.choice([0,1]) and not re.findall(r'linear-gradient\(|rgb\(', string) else string.lower()
 
 def get_zerofont_css():
-	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;height:16px'.split(';')
+	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;height:16px;white-space:nowrap'.split(';')
 	dummy_css = f"""color: {get_rand_color()}
 		background: {get_rand_color()}
 		text-align: {get_rand_of('initial|revert|revert-layer|unset|inherit')}
@@ -288,7 +288,7 @@ def expand_macros(text, subs):
 		for i, placeholder in enumerate(placeholders):
 			text = text.replace('{'+placeholder+'}', replacements[i])
 		for file_path in [file_path for file_path in re.findall(r'(\{.+?\})', text) if is_file_or_url(file_path[1:-1])]:
-			text = text.replace(file_path, random.choice(read_lines(file_path[1:-1])))
+			text = text.replace(file_path, random.choice(read_lines(file_path[1:-1])).strip())
 		text = re.sub(r'(\{d\})', lambda x: str(random.choice(range(0,9))), text)
 		text = re.sub(r'(\{rand_str\})', lambda x: get_rand_str(16), text)
 		text = re.sub(r'(\{rand_ip\})', lambda x: get_rand_ip(), text)
@@ -387,7 +387,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 		headers+= 'X-MSmail-Priority: High\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
 		headers += get_read_receipt_headers(smtp_from)
-	message_raw = headers + message.as_string()
+	message_raw = (headers + message.as_string()).replace('\r\n', '\n').replace('\n', '\r\n')
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
 def get_testmail_str(smtp_str):
@@ -415,6 +415,8 @@ def smtp_send_testmails():
 				if not mail_str:
 					break
 				smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
+				print(wl+okk+f'sent to: '+bold(mail_str)+', sleeping...')
+				time.sleep(12)
 			test_mails_sent = True
 		except Exception as e:
 			msg = '~\b[X] '+str(e).split('b\'')[-1].strip()
