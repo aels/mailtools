@@ -9,7 +9,7 @@ Damn flexible SMTP mailer, that takes list of smtp servers as a consumable, and 
 - Have 0% chance that you will shoot yourself in the leg using it. All important triggers are hard-coded.
 - Supports SMTP servers cracked by [MadCat smtp-checker](https://github.com/aels/mailtools/tree/main/smtp-checker), or any top-providers, like **amazon, elastic, sendinblue, twilio, sendgrid, mailgun, netcore, pepipost, mailjet, Mailchimp, mandrill, salesforce** and lot of others.
 - Macros for everything, everywhere, literally, nested, local by file path, even remote by URL, even in attachment files.
-- **Built-in phone number obfuscator**.
+- **Built-in phone number obfuscator (keeps numbers diallable)**.
 - **Built-in zero-font support**.
 - Built-in html params and style properties randomization.
 - Support of "random file from folder" for letters and attachements.
