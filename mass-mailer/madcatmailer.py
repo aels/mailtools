@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, datetime
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, datetime, uuid
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -50,7 +50,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.04.22{z}
+          ╙     {b}MadCat Mailer v25.04.26{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -118,13 +118,16 @@ def url_escape_str(string):
 def html_encode_str(string):
 	return ''.join(['&#'+format(ord(i), 'd') for i in string])
 
+def get_rand_num(len):
+	return ''.join(random.choice(string.digits) for i in range(len))
+
 def get_rand_str(len):
 	return ''.join(random.choice(string.ascii_lowercase+string.digits) for i in range(len))
 
 def get_rand_ip():
 	return '.'.join(str(random.randint(1, 255)) for i in range(4))
 
-def get_rand_of(string):
+def any_of(string):
 	return random.choice(string.split('|'))
 
 def get_rand_color():
@@ -134,25 +137,25 @@ def rand_case(string):
 	return string.upper() if random.choice([0,1]) and not re.findall(r'linear-gradient\(|rgb\(', string) else string.lower()
 
 def get_zerofont_css():
-	zf_css = f'display:inline-block;width:{get_rand_of('0px|0')};overflow:hidden;height:16px;white-space:nowrap'.split(';')
+	zf_css = f'display:inline-block;width:0{any_of('px|')};overflow:hidden;height:16px;white-space:nowrap'.split(';')
 	dummy_css = f"""color: {get_rand_color()}
 		background: {get_rand_color()}
-		text-align: {get_rand_of('initial|revert|revert-layer|unset|inherit')}
-		text-decoration: {get_rand_of('none|inherit')}
-		text-shadow: {get_rand_of('none|inherit')}
-		box-align: {get_rand_of('unset|inherit')}
-		box-shadow: {get_rand_of('inset |')}{get_rand_of('0px|0')} {get_rand_of('0px|0')}{get_rand_of('| '+get_rand_color())}
-		font-weight: {get_rand_of('normal|inherit')}
-		font-display: {get_rand_of('auto|block|swap|fallback|optional|inherit')}
-		font: {get_rand_of('caption|icon|menu|message-box|small-caption|status-bar')}
-		font-smooth: {get_rand_of('unset|inherit')}
-		align-self: {get_rand_of('start|inherit')}
-		align-content: {get_rand_of('start|inherit')}
-		background-origin: {get_rand_of('padding-box|inherit')}""".replace('\t', '').split('\n')
+		text-align: {any_of('initial|revert|revert-layer|unset|inherit')}
+		text-decoration: {any_of('none|inherit')}
+		text-shadow: {any_of('none|inherit')}
+		box-align: {any_of('unset|inherit')}
+		box-shadow: {any_of('inset |')}{any_of('0px|0')} {any_of('0px|0')}{any_of('| '+get_rand_color())}
+		font-weight: {any_of('normal|inherit')}
+		font-display: {any_of('auto|block|swap|fallback|optional|inherit')}
+		font: {any_of('caption|icon|menu|message-box|small-caption|status-bar')}
+		font-smooth: {any_of('unset|inherit')}
+		align-self: {any_of('start|inherit')}
+		align-content: {any_of('start|inherit')}
+		background-origin: {any_of('padding-box|inherit')}""".replace('\t', '').split('\n')
 	return ';'.join([rand_case(style) for style in shuffle_arr(zf_css+shuffle_arr(dummy_css)[-4:])])
 
 def get_zerofont_html(string):
-	tag = get_rand_of('span|div|sup')
+	tag = any_of('span|div|sup')
 	tag = rand_case(tag)
 	return f'<{tag} style="{get_zerofont_css()}">{string}</{tag}>'
 
@@ -166,7 +169,7 @@ def shuffle_css_styles(html):
 	for tag_style_value in re.findall(r'style="([^"]+)"', html):
 		styles = tag_style_value.replace('&quot;', '"').split(';')
 		styles = [rand_case(style).strip() for style in shuffle_arr(styles) if style!='']
-		html = html.replace(tag_style_value, get_rand_of(';|; ').join(styles).replace('"', '&quot;'))
+		html = html.replace(tag_style_value, any_of(';|; ').join(styles).replace('"', '&quot;'))
 	return html
 
 def obfuscate_phone_number(number):
@@ -264,7 +267,7 @@ def is_mail_of(mail, services):
 def extract_mail(line):
 	return first(re.findall(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}', line))
 
-def expand_macros(text, subs):
+def expand_macros_once(text, subs):
 	mail_str, smtp_user, mail_redirect_url, rand_Fname, rand_Lname = subs
 	mail_to = extract_mail(mail_str)
 	placeholders = 'email|email_b64|email_user|email_host|email_l2_domain|smtp_user|smtp_host|url|rand_Fname|rand_Lname|rand_fname|rand_lname'.split('|')
@@ -287,18 +290,25 @@ def expand_macros(text, subs):
 			text = text.replace('{'+str(i+1)+'}', column)
 		for i, placeholder in enumerate(placeholders):
 			text = text.replace('{'+placeholder+'}', replacements[i])
-		for file_path in [file_path for file_path in re.findall(r'(\{.+?\})', text) if is_file_or_url(file_path[1:-1])]:
+		for file_path in [file_path for file_path in re.findall(r'(\{[^{}]+\})', text) if is_file_or_url(file_path[1:-1])]:
 			text = text.replace(file_path, random.choice(read_lines(file_path[1:-1])).strip())
 		text = re.sub(r'(\{d\})', lambda x: str(random.choice(range(0,9))), text)
 		text = re.sub(r'(\{rand_str\})', lambda x: get_rand_str(16), text)
 		text = re.sub(r'(\{rand_ip\})', lambda x: get_rand_ip(), text)
 		text = re.sub(r'(\{zf_css\})', lambda x: get_zerofont_css(), text)
-		for phone_num in re.findall(r'(\{tel:.+?\})', text):
+		for phone_num in re.findall(r'(\{tel:[^{}]+\})', text):
 			text = text.replace(phone_num, 'tel:'+obfuscate_phone_number(phone_num[5:-1]))
-		for zf_splitter in re.findall(r'(\{zf:.+?\})', text):
+		for b64_text in re.findall(r'(\{b64:[^{}]+\})', text):
+			text = text.replace(b64_text, base64_encode(b64_text[5:-1]))
+		for zf_splitter in re.findall(r'(\{zf:[^{}]+\})', text):
 			text = text.replace(zf_splitter, get_zerofont_html(zf_splitter[4:-1]))
-		for macro in re.findall(r'(\{.+?\|.+?\})', text):
-			text = text.replace(macro, get_rand_of(macro[1:-1]))
+		for macro in re.findall(r'(\{[^{}]*\|[^{}]*\})', text):
+			text = text.replace(macro, any_of(macro[1:-1]))
+	return text
+
+def expand_macros(text, subs):
+	text = expand_macros_once(text, subs)
+	text = expand_macros_once(text, subs)
 	return text
 
 def get_read_receipt_headers(mail_from):
@@ -363,31 +373,39 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	mail_body = shuffle_css_styles(mail_body)
 	smtp_from = extract_mail(smtp_user) or extract_mail(mail_from) or 'no-reply@localhost'
 	smtp_host = smtp_from.split('@')[1]
-	message = MIMEMultipart()
+	if is_mail_of(mail_to, 'outlook.com'):
+		boundary = '==============='+get_rand_num(19)+'=='
+	else: 
+		boundary = 'Apple-Mail=_'+str(uuid.uuid4()).upper()
+	message = MIMEMultipart(boundary=boundary)
 	message['To'] = mail_to
 	message['From'] = smtp_from if is_valid_email(mail_from) else str(Header(mail_from.split(' <')[0],'utf-8'))+f' <{smtp_from}>'
 	message['Subject'] = Header(mail_subject,'utf-8')
-	message.attach(MIMEText(mail_body, 'html', 'utf-8'))
-	for attachment_file_path in config['attachment_files']:
-		attachment = create_attachment(attachment_file_path, subs)
-		message.attach(attachment)
-	headers = 'Return-Path: <>'+'\n' # https://stackoverflow.com/a/154794/1906976
+	message_html = MIMEText(mail_body, 'html', 'utf-8')	
+	headers = ''
 	headers+= 'Reply-To: '+mail_reply_to+'\n'
-	headers+= 'X-Source-IP: 127.0.0.1\n'
-	headers+= 'X-Sender-IP: 127.0.0.1\n'
-	headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
-	headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
-	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
-	headers+= 'Precedence: first-class\n' # https://stackoverflow.com/a/6240126/1906976
-	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
+	headers+= 'Message-ID: <'+str(uuid.uuid4()).upper()+'@'+smtp_host+'>\n'
 	headers+= 'Date: '+formatdate(localtime=True)+'\n'
-	headers+= 'Message-ID: <'+get_rand_str(32)+'@'+smtp_host+'>\n'
 	if is_mail_of(mail_to, 'outlook.com'):
 		headers+= 'X-Priority: 1\n'
 		headers+= 'X-MSmail-Priority: High\n'
+		headers+= 'X-Mailer: Microsoft Office Outlook, Build 10.0.5610\n'
+		headers+= 'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441\n'
+	else:
+		message_html.replace_header('MIME-Version', '1.0 (Mac OS X Mail 16.0 \\(3774.'+any_of('1|2|3|4|5|6')+'00.171.1.1\\))')
+		headers+= 'X-Mailer: Apple Mail (2.3774.'+any_of('1|2|3|4|5|6')+'00.171.1.1)\n'
+	headers+= 'X-Source-IP: 127.0.0.1\n'
+	headers+= 'X-Sender-IP: 127.0.0.1\n'
+	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
+	headers+= 'Precedence: first-class\n' # https://stackoverflow.com/a/6240126/1906976
+	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
 		headers += get_read_receipt_headers(smtp_from)
-	message_raw = (headers + message.as_string()).replace('\r\n', '\n').replace('\n', '\r\n')
+	message.attach(message_html)
+	for attachment_file_path in config['attachment_files']:
+		attachment = create_attachment(attachment_file_path, subs)
+		message.attach(attachment)
+	message_raw = (headers + message.as_string()).replace('\r\n', '\n')
 	server_obj.sendmail(smtp_from, mail_to, message_raw)
 
 def get_testmail_str(smtp_str):
@@ -456,8 +474,17 @@ def worker_item(mail_que, results_que):
 						time_start = time.perf_counter()
 						mail_str = get_testmail_str(smtp_str) or mail_str or mail_que.get()
 						mail_to = extract_mail(mail_str)
-						if time.perf_counter()-last_slow_mail_time<slow_send_mail_servers_delay:
-							time.sleep(slow_send_mail_servers_delay-time.perf_counter()+last_slow_mail_time)
+						if time.perf_counter() - server_born_time < 60*5:
+							chill_time = 65
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+bold(' warming-up, slowly... sleeping 1m')
+						elif time.perf_counter() - last_slow_mail_time < slow_send_mail_servers_delay:
+							chill_time = slow_send_mail_servers_delay - time.perf_counter() + last_slow_mail_time
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+' chilling for '+bold(chill_time)+'s between emails'
+						else:
+							chill_time = 0.3
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+' chilling for 0.3s between emails'
+						results_que.put((self.name, current_server+msg, mails_sent))
+						time.sleep(chill_time)
 						smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
 						msg = green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
 						results_que.put((self.name, current_server+msg, mails_sent))
@@ -503,7 +530,6 @@ def load_config():
 		'attachment_files': '',
 		'redirects_file': '',
 		'add_read_receipts': '',
-		'add_high_priority': '',
 	})
 	if len(sys.argv) == 2:
 		config['config_file'] = sys.argv[1] if is_file_or_url(sys.argv[1]) else exit(err+'wrong config path or filename: it must be like '+bold('<...>.config'))
