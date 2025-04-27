@@ -50,7 +50,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.04.26{z}
+          ╙     {b}MadCat Mailer v25.04.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -375,7 +375,7 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	smtp_host = smtp_from.split('@')[1]
 	if is_mail_of(mail_to, 'outlook.com'):
 		boundary = '==============='+get_rand_num(19)+'=='
-	else: 
+	else:
 		boundary = 'Apple-Mail=_'+str(uuid.uuid4()).upper()
 	message = MIMEMultipart(boundary=boundary)
 	message['To'] = mail_to
