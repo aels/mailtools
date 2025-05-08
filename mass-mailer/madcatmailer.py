@@ -23,7 +23,7 @@ mailing_services = r'amazon|elastic|sendinblue|twilio|sendgrid|mailgun|netcore|p
 no_read_receipt_for = r'@(web\.de|gmx\.[a-z]{2,3}|gazeta\.pl|wp\.pl|op\.pl|interia\.pl|onet\.pl|spamtest\.glockdb\.com)$'
 dummy_config_path = 'https://raw.githubusercontent.com/aels/mailtools/main/mass-mailer/dummy.config'
 text_extensions = 'txt|html|htm|mhtml|mht|xhtml|svg'.split('|')
-slow_send_mail_servers = 'gmail,googlemail,google'
+slow_send_mail_servers = 'gmail,googlemail,google,biglobe'
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -50,7 +50,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.04.27{z}
+          ╙     {b}MadCat Mailer v25.05.08{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -173,16 +173,14 @@ def shuffle_css_styles(html):
 	return html
 
 def obfuscate_phone_number(number):
-	allowed_chars = '          &---()./!	$_'
+	allowed_chars = ['']*5 + list('     &---()./!	$_')
 	if number[0]=='+':
 		have_plus = True
 		number = number[1:]
 	else:
 		have_plus = False
-	digits = re.findall(r'\d', number)
-	for i, d in enumerate(digits):
-		digits[i] = url_escape_str(d) if not random.choice(range(0,7)) else d
-	number = re.sub(r'( )', lambda x: random.choice(allowed_chars), ' '.join(digits)).replace(' ', '')
+	number = re.sub(r'( )', lambda x: random.choice(allowed_chars), ' '.join(re.findall(r'\d', number)))
+	number = ''.join([s if random.choice(range(4)) else url_escape_str(s) for s in number])
 	return have_plus and '+'+number or number
 
 def check_ipv4():
@@ -307,6 +305,7 @@ def expand_macros_once(text, subs):
 	return text
 
 def expand_macros(text, subs):
+	text = expand_macros_once(text, subs)
 	text = expand_macros_once(text, subs)
 	text = expand_macros_once(text, subs)
 	return text
@@ -475,21 +474,21 @@ def worker_item(mail_que, results_que):
 						mail_str = get_testmail_str(smtp_str) or mail_str or mail_que.get()
 						mail_to = extract_mail(mail_str)
 						if time.perf_counter() - server_born_time < 60*5:
-							chill_time = 65
-							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+bold(' warming-up, slowly... sleeping 1m')
+							chill_time = 35
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+'warming-up, slowly... sleeping '+bold('30s')
 						elif time.perf_counter() - last_slow_mail_time < slow_send_mail_servers_delay:
 							chill_time = slow_send_mail_servers_delay - time.perf_counter() + last_slow_mail_time
-							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+' chilling for '+bold(chill_time)+'s between emails'
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+'chilling for '+bold(chill_time)+'s between emails'
 						else:
 							chill_time = 0.3
-							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+' chilling for 0.3s between emails'
+							msg = cyan('+\b'+'>'*(mails_sent%3)+b+'>',0)+cyan('>> '[mails_sent%3:],0)+'chilling for 0.3s between emails'
 						results_que.put((self.name, current_server+msg, mails_sent))
 						time.sleep(chill_time)
 						smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str)
-						msg = green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
-						results_que.put((self.name, current_server+msg, mails_sent))
 						smtp_sent += 1
 						mails_sent += 1
+						msg = green('+\b'+'>'*(mails_sent%3)+b+'>',0)+green('>> '[mails_sent%3:],0)+mail_str
+						results_que.put((self.name, current_server+msg, mails_sent))
 						mail_str = False
 						last_slow_mail_time = time.perf_counter() if is_mail_of(mail_to, slow_send_mail_servers) else last_slow_mail_time
 						loop_times += [time.perf_counter() - time_start]
@@ -546,7 +545,7 @@ def load_config():
 	for key, value in temp_config.items(head_name):
 		config[key] = value
 	if not is_file_or_url(config['smtps_list_file']):
-		exit(err+'cannot open smtps list file. does it exist?')
+		exit(err+'cannot open smtps list file, provided in '+bold(config['config_file'])+'. does it exist?')
 	else:
 		config['smtps_errors_file'] = re.sub(r'\.([^.]+)$', r'_error_log.\1', config['smtps_list_file'])
 		smtp_pool_array = read_lines(config['smtps_list_file'])
@@ -656,9 +655,9 @@ smtp_pool_array = []
 smtp_pool_tested = {}
 threads_statuses = {}
 test_mail_str = ''
-threads_count = 100
+threads_count = 40
 connection_timeout = 5
-slow_send_mail_servers_delay = 12
+slow_send_mail_servers_delay = 6
 total_sent = 0
 skipped = 0
 speed = []
