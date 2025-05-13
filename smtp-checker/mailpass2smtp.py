@@ -23,6 +23,9 @@ dns_list_url = 'https://raw.githubusercontent.com/janmasarik/resolvers/master/re
 autoconfig_data_url = 'https://raw.githubusercontent.com/aels/mailtools/main/smtp-checker/autoconfigs_enriched.txt'
 # dangerous mx domains, skipping them all
 dangerous_domains = r'acronis|acros|adlice|alinto|appriver|aspav|atomdata|avanan|avast|barracuda|baseq|bitdefender|broadcom|btitalia|censornet|checkpoint|cisco|cistymail|clean-mailbox|clearswift|closedport|cloudflare|comforte|corvid|crsp|cyren|darktrace|data-mail-group|dmarcly|drweb|duocircle|e-purifier|earthlink-vadesecure|ecsc|eicar|elivescanned|eset|essentials|exchangedefender|fireeye|forcepoint|fortinet|gartner|gatefy|gonkar|guard|helpsystems|heluna|hosted-247|iberlayer|indevis|infowatch|intermedia|intra2net|invalid|ioactive|ironscales|isync|itserver|jellyfish|kcsfa.co|keycaptcha|krvtz|libraesva|link11|localhost|logix|mailborder.co|mailchannels|mailcleaner|mailcontrol|mailinator|mailroute|mailsift|mailstrainer|mcafee|mdaemon|mimecast|mx-relay|mx1.ik2|mx37\.m..p\.com|mxcomet|mxgate|mxstorm|n-able|n2net|nano-av|netintelligence|network-box|networkboxusa|newnettechnologies|newtonit.co|odysseycs|openwall|opswat|perfectmail|perimeterwatch|plesk|prodaft|proofpoint|proxmox|redcondor|reflexion|retarus|safedns|safeweb|sec-provider|secureage|securence|security|sendio|shield|sicontact|sonicwall|sophos|spamtitan|spfbl|spiceworks|stopsign|supercleanmail|techtarget|titanhq|trellix|trendmicro|trustifi|trustwave|tryton|uni-muenster|usergate|vadesecure|wessexnetworks|zillya|zyxel|fucking-shit|please|kill-me-please|virus|bot|trap|honey|lab|virtual|vm\d|research|abus|security|filter|junk|rbl|ubl|spam|black|list|bad|brukalai|metunet|excello'
+#DNSBL Lookup list
+dnsbls = ["zen.spamhaus.org","0spam.fusionzero.com","all.rbl.jp","bl.mail.abusix.zone","dbl.spamhaus.org","exploit.mail.abusix.zone","spam.dnsbl.anonmails.de","backscatter.spameatingmonkey.net","b.barracudacentral.org","bl.blocklist.de","bl.rbl.scrolloutf1.com","cbl.abuseat.org","exitnodes.tor.dnsbl.sectoor.de","torexit.dan.me.uk","bl.drmx.org","dnsbl.dronebl.org","spamsources.fabel.dk","bl.mailspike.net","phishing.rbl.msrbl.net","spam.rbl.msrbl.net","netscan.rbl.blockedservers.com","noptr.spamrats.com","rbl.rbl.jp","all.s5h.net","bl.konstant.no","bl.nosolicitado.org","score.senderscore.com","services.net","bl.spamcop.net","dnsbl.spfbl.net","bl.suomispam.net","dnsrbl.swinog.ch","rbl2.triumf.ca","truncate.gbudb.net","dnsbl-1.uceprotect.net","dnsbl-2.uceprotect.net","dnsbl-3.uceprotect.net","woodys.smtp.blacklist","zapbl.net","dnsbl.kempt.net"]
+
 
 b   = '\033[1m'
 z   = '\033[0m'
@@ -98,18 +101,23 @@ def tune_network():
 def check_ipv4():
 	try:
 		socket.has_ipv4 = read('https://api.ipify.org')
+		socket.ipv4_blacklist = []
 	except:
 		socket.has_ipv4 = red('error getting ip')
 
 def check_ipv4_blacklists():
 	print(inf+'checking ipv4 address in blacklists...'+up)
-	try:
-		mxtoolbox_url = f'https://mxtoolbox.com/api/v1/Lookup?command=blacklist&argument={socket.has_ipv4}&resultIndex=5&disableRhsbl=true&format=2'
-		socket.ipv4_blacklist = requests.get(mxtoolbox_url, headers={'tempauthorization':'27eea1cd-e644-4b7b-bebe-38010f55dab3'}, timeout=15).text
-		socket.ipv4_blacklist = re.findall(r'LISTED</td><td class=[^>]+><span class=[^>]+>([^<]+)</span>', socket.ipv4_blacklist)
-		socket.ipv4_blacklist = red(', '.join(socket.ipv4_blacklist)) if socket.ipv4_blacklist else False
-	except:
-		socket.ipv4_blacklist = red('blacklist check error')
+	
+	reversed_ip = '.'.join(socket.has_ipv4.split('.')[::-1])
+	
+	for dnsbl in dnsbls:
+		try:
+			result = socket.gethostbyname(f"{reversed_ip}.{dnsbl}")
+			socket.ipv4_blacklist.append(dnsbl)
+		except socket.gaierror:
+			continue  
+	
+	
 
 def check_ipv6():
 	try:
@@ -246,6 +254,7 @@ def guess_smtp_server(domain):
 def get_smtp_config(domain):
 	global domain_configs_cache, default_login_template
 	domain = domain.lower()
+	
 	if not domain in domain_configs_cache:
 		domain_configs_cache[domain] = ('', default_login_template)
 		domain_configs_cache[domain] = guess_smtp_server(domain)
@@ -544,7 +553,8 @@ print(inf+'email & password colls:        '+bold(email_collumn)+' and '+bold(pas
 print(inf+'ignored email hosts:           '+bold(exclude_mail_hosts))
 print(inf+'goods file:                    '+bold(smtp_filename))
 print(inf+'verification email:            '+bold(verify_email or '-'))
-print(inf+'ipv4 address:                  '+bold(socket.has_ipv4 or '-')+' ('+(socket.ipv4_blacklist or green('clean'))+')')
+print(inf + 'ipv4 address:                  ' + bold(socket.has_ipv4 or '-') + ' (' + red((', '.join(socket.ipv4_blacklist)) if socket.ipv4_blacklist else green('clean')) + ')')
+
 print(inf+'ipv6 address:                  '+bold(socket.has_ipv6 or '-'))
 input(npt+'press '+bold('[ Enter ]')+' to start...')
 
