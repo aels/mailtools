@@ -316,21 +316,21 @@ def socket_get_free_smtp_server(smtp_server, port):
 			s.connect((smtp_server_ip, port))
 		else:
 			raise Exception(e)
-	return s
+	return (s, smtp_server_ip)
 
-def socket_try_tls(sock, self_host):
-	answer = socket_send_and_read(sock, 'EHLO '+self_host)
+def socket_try_tls(sock, self_ip):
+	answer = socket_send_and_read(sock, 'EHLO '+self_ip)
 	if re.findall(r'starttls', answer.lower()):
 		answer = socket_send_and_read(sock, 'STARTTLS')
 		if answer[:3] == '220':
 			sock = ssl._create_unverified_context().wrap_socket(sock)
 	return sock
 
-def socket_try_login(sock, self_host, smtp_login, smtp_password):
+def socket_try_login(sock, self_ip, smtp_login, smtp_password):
 	smtp_login_b64 = base64_encode(smtp_login)
 	smtp_pass_b64 = base64_encode(smtp_password)
 	smtp_login_pass_b64 = base64_encode(smtp_login+':'+smtp_password)
-	answer = socket_send_and_read(sock, 'EHLO '+self_host)
+	answer = socket_send_and_read(sock, 'EHLO '+self_ip)
 	if re.findall(r'auth[\w =-]+(plain|login)', answer.lower()):
 		if re.findall(r'auth[\w =-]+login', answer.lower()):
 			answer = socket_send_and_read(sock, 'AUTH LOGIN '+smtp_login_b64)
@@ -366,12 +366,12 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 		smtp_login = login_template.replace('%EMAILADDRESS%', smtp_user).replace('%EMAILLOCALPART%', smtp_user.split('@')[0]).replace('%EMAILDOMAIN%', smtp_user.split('@')[1])
 	else:
 		smtp_login = smtp_user
-	self_host = socket.has_ipv6 if ':' in smtp_server_ip else socket.has_ipv4
-	s = socket_get_free_smtp_server(smtp_server, port)
+	s, smtp_server_ip = socket_get_free_smtp_server(smtp_server, port)
+	self_ip = socket.has_ipv6 if ':' in smtp_server_ip else socket.has_ipv4
 	answer = socket_send_and_read(s)
 	if answer[:3] == '220':
-		s = socket_try_tls(s, self_host) if port != '465' else s
-		s = socket_try_login(s, smtp_server, smtp_login, password)
+		s = socket_try_tls(s, self_ip) if port != '465' else s
+		s = socket_try_login(s, self_ip, smtp_login, password)
 		if not verify_email:
 			s.close()
 			return True
