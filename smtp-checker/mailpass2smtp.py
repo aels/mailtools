@@ -46,7 +46,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat SMTP Checker & Cracker v25.05.31{z}
+          ╙     {b}MadCat SMTP Checker & Cracker v25.06.04{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -392,6 +392,8 @@ def smtp_connect_and_send(smtp_server, port, login_template, smtp_user, password
 			'To: '+verify_email,
 			'Subject: '+str(uuid.uuid4()),
 			'Reply-To: '+smtp_user,
+			'X-Mailer: Microsoft Office Outlook, Build 10.0.5610',
+			'X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1441',
 			'MIME-Version: 1.0',
 			'Content-Type: text/plain; charset="utf-8"',
 			'Content-Transfer-Encoding: quoted-printable'
