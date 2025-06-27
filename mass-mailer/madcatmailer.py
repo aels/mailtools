@@ -1,6 +1,6 @@
 #!/usr/local/bin/python3
 
-import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, datetime, uuid
+import os, sys, threading, time, queue, random, re, signal, smtplib, ssl, socket, configparser, base64, string, datetime, uuid, colorama
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -13,7 +13,7 @@ try:
 	import psutil, requests, dns.resolver
 except ImportError:
 	print('\033[1;33minstalling missing packages...\033[0m')
-	os.system('apt -y install python3-pip; pip3 install psutil dnspython requests pyopenssl')
+	os.system('apt -y install python3-pip; pip3 install psutil dnspython requests pyopenssl colorama')
 	import psutil, requests, dns.resolver
 
 if not sys.version_info[0] > 2 and not sys.version_info[1] > 8:
@@ -27,6 +27,7 @@ slow_send_mail_servers = 'gmail,googlemail,google,biglobe'
 
 requests.packages.urllib3.disable_warnings()
 sys.stdout.reconfigure(encoding='utf-8')
+colorama.init(autoreset=True)
 charset.add_charset('utf-8', charset.SHORTEST, charset.QP)
 
 b   = '\033[1m'
@@ -50,7 +51,7 @@ def show_banner():
          |█|    `   ██/  ███▌╟█, (█████▌   ╙██▄▄███   @██▀`█  ██ ▄▌             
          ╟█          `    ▀▀  ╙█▀ `╙`╟█      `▀▀^`    ▀█╙  ╙   ▀█▀`             
          ╙█                           ╙                                         
-          ╙     {b}MadCat Mailer v25.05.08{z}
+          ╙     {b}MadCat Mailer v25.05.27{z}
                 Made by {b}Aels{z} for community: {b}https://xss.is{z} - forum of security professionals
                 https://github.com/aels/mailtools
                 https://t.me/IamLavander
@@ -137,7 +138,7 @@ def rand_case(string):
 	return string.upper() if random.choice([0,1]) and not re.findall(r'linear-gradient\(|rgb\(', string) else string.lower()
 
 def get_zerofont_css():
-	zf_css = f'display:inline-block;width:0{any_of('px|')};overflow:hidden;height:16px;white-space:nowrap'.split(';')
+	zf_css = f"display:inline-block;width:0{any_of('px|')};overflow:hidden;height:16px;white-space:nowrap".split(';')
 	dummy_css = f"""color: {get_rand_color()}
 		background: {get_rand_color()}
 		text-align: {any_of('initial|revert|revert-layer|unset|inherit')}
@@ -393,9 +394,9 @@ def smtp_sendmail(server_obj, smtp_server, smtp_user, mail_str):
 	else:
 		message_html.replace_header('MIME-Version', '1.0 (Mac OS X Mail 16.0 \\(3774.'+any_of('1|2|3|4|5|6')+'00.171.1.1\\))')
 		headers+= 'X-Mailer: Apple Mail (2.3774.'+any_of('1|2|3|4|5|6')+'00.171.1.1)\n'
-	headers+= 'X-Source-IP: 127.0.0.1\n'
-	headers+= 'X-Sender-IP: 127.0.0.1\n'
-	headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
+	# headers+= 'X-Source-IP: 127.0.0.1\n'
+	# headers+= 'X-Sender-IP: 127.0.0.1\n'
+	# headers+= 'List-Unsubscribe: <mailto:unsubscribe@'+smtp_host+'>\n'
 	headers+= 'Precedence: first-class\n' # https://stackoverflow.com/a/6240126/1906976
 	headers+= 'X-Anti-Abuse: Please report abuse to abuse@'+smtp_host+'\n'
 	if config['add_read_receipts'] and not re.findall(no_read_receipt_for, mail_to.lower()):
