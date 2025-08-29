@@ -1,20 +1,21 @@
-[<img alt="image" width="100%" src="https://user-images.githubusercontent.com/1212294/215314027-df9b97ed-5547-42a4-b043-a5ca32eb189d.png">](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
+[<img alt="image" width="100%" src="https://user-images.githubusercontent.com/1212294/215314027-df9b97ed-5547-42a4-b043-a5ca32eb189d.png">](https://bit.ly/exploit-in)
 
-<img src="https://img.shields.io/badge/xss.is-community-green"> <img src="https://img.shields.io/badge/Language-python-blue"> <img src="https://img.shields.io/badge/code_quality-%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90-green"> <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F-made_with_love-pink"> <img src="https://hits.sh/github.com/aels/mailtools.svg" alt="visits">
+<img src="https://img.shields.io/badge/exploit.in-community-orange"> <img src="https://img.shields.io/badge/Language-python-blue"> <img src="https://img.shields.io/badge/code_quality-%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90%E2%AD%90-green"> <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F-made_with_love-pink"> <img src="https://hits.sh/github.com/aels/mailtools.svg" alt="visits">
 
 # Community
-- [XSS.is](https://bit.ly/3XN8g87#https://xss.is/forums/70/) (Damagelab reborn) is one of the oldest underground forums with skilled and friendly members.
-Most likely there you will find help and new business partners. [Welcome aboard!](https://bit.ly/3XN8g87#https://xss.is/forums/70/)
-- Spamhaus 📧 ([https://t.me/spamcops](https://t.me/spamcops)) - our friendly telegram chat, where you can find help from many same-minded people, new friends and partners. It feels like home there.
+- [exploit.in](https://bit.ly/exploit-in) is one of the oldest underground forums with skilled and friendly members.
+Most likely, there you will find help and new business partners. [Welcome aboard!](https://bit.ly/exploit-in)
+- Spamhaus 📧 (dm me for invite link) - our friendly Telegram chat, where you can find help from many like-minded people, new friends, and partners. It feels like home there.
 # Mail Tools
-- [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid smtp credentials.
+- [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid SMTP credentials.
 - [x] [Validol - email validator/debouncer that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
-- [ ] [MadCat mailer](https://github.com/aels/mailtools/tree/main/mass-mailer). Just another multithreaded smtplib-based mailer. Worth giving it a try.
-- [ ] InboxStat - gives you statistics about list of inboxes by emails and urls. Also accepts search query, if you are looking for something specific. In development.
-- [ ] Pondy - email responder. Allows you to respond to every contact in list of mailboxes with your email. In development.
+- [ ] [MadCat mailer](https://github.com/aels/mailtools/tree/main/mass-mailer). Just another multithreaded smtplib-based mailer. Think it's worth giving it a try.
+- [x] [HTMLMix - free, rich, and smart-ass email HTML randomizer](https://htmlmix.fun/). Mutate HTML of your letters to bypass any spam filters, host images on trusted URLs, and do a lot of other neat magic.
+- [ ] InboxStat - gives you statistics about a list of inboxes by emails and URLs. Also accepts search queries, if you are looking for something specific, in development.
+- [ ] Pondy - email responder. Allows you to respond to every contact in a list of mailboxes with your email. In development.
 - [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
-# Full spamming guide from Aels (me). How to use this tools. Now free.
-Table of content:
+# Full spamming guide from Aels (me). How to use these tools. Now free.
+Table of contents:
 - Preparing a lead database
 - Collecting and filtering smtp servers
 - Writing a letter text
