@@ -10,7 +10,6 @@ Most likely, there you will find help and new business partners. [Welcome aboard
 - [x] [Fast as hell proxyless SMTP checker/validator](https://github.com/aels/mailtools/tree/main/smtp-checker). Converts mail:pass lists to valid SMTP credentials.
 - [x] [Validol - email validator/debouncer that will save your ass](https://github.com/aels/mailtools/tree/main/remove-dangerous-emails). Remove strings with dangerous emails from files you provide at insane speed.
 - [ ] [MadCat mailer](https://github.com/aels/mailtools/tree/main/mass-mailer). Just another multithreaded smtplib-based mailer. Think it's worth giving it a try.
-- [x] [HTMLMix - free, rich, and smart-ass email HTML randomizer](https://htmlmix.fun/). Mutate HTML of your letters to bypass any spam filters, host images on trusted URLs, and do a lot of other neat magic.
 - [ ] InboxStat - gives you statistics about a list of inboxes by emails and URLs. Also accepts search queries, if you are looking for something specific, in development.
 - [ ] Pondy - email responder. Allows you to respond to every contact in a list of mailboxes with your email. In development.
 - [ ] MKZMHTU - free bulk SMS sender through public gateways, with url randomisation and macros support. In development.
