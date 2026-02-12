@@ -25,13 +25,13 @@ pip3 install psutil requests dnspython IP2Location
 - All done, we can go.
 ## Usage
 ```
-python3 <(curl -fskSL bit.ly/getsafemails)
+python3 <(curl -fskSL vo.la/idjvzYS)
 ```
 and validol will ask you for path to database you want to validate and desired email providers you want to leave in this list (if you want only "outlook" emails, for example).
 
 Or you can supply path to mail list as parameter:
 ```
-python3 <(curl -fskSL bit.ly/getsafemails) /path/to/mail_list.txt
+python3 <(curl -fskSL vo.la/idjvzYS) /path/to/mail_list.txt
 ```
 Script will produce two new files: __mail\_list\_dangerous.txt__ with dangerous mails and reasons of each, and __mail\_list\_safe.txt__ which is your source file with dangerous lines removed.
 __mail\_list.txt__ file itself can by any format with any data. Only requirement - better it to contain some emails to check. They will be excracted with RegExp, leaving other data untouched,
