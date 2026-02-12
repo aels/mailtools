@@ -26,7 +26,7 @@ No need to download anything. All you need is __python3__ and __psutil & dnspyth
 ## Usage
 You need python3 installed. Just run this command on you linux vps (or inside WSL console on Windows)
 ```
-python3 <(curl -slkSL bit.ly/madcatmailer)
+python3 <(curl -slkSL vo.la/MAkwGFf)
 ```
 and mailer will download it's config file to the current directory under the name "dummy.config"
 
